@@ -1,6 +1,6 @@
 .highlight {
   border-radius: 0.4rem;
-  color: white;
+  color: black;
   padding: 0.5rem;
   margin-bottom: 1rem;
 }
@@ -9,4 +9,7 @@
 }
 .red {
   background-color: lightcoral;
+}
+.green {
+  background-color: lightseagreen;
 }
