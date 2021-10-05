@@ -7,7 +7,7 @@
 import streamlit as st
 import time
 from datetime import datetime, timedelta
-# import RPi.GPIO as GPIO
+# import gpiozero
 
 # # # # # # # # # # # # # # # # # # # # # # # #
 # Define pin list, output/input mode, and other variables
@@ -32,12 +32,10 @@ pin_list = {"PinPrec1": 1,
             "PinPrec2": 2, 
             "PinS1": 3, 
             "PinS2": 4}
-
-# GPIO.setmode(GPIO.BCM)
-# GPIO.setup(pin_list[PinPrec1], GPIO.OUT)
-# GPIO.setup(pin_list[PinPrec2], GPIO.OUT)
-# GPIO.setup(pin_list[PinS1], GPIO.OUT)
-# GPIO.setup(pin_list[PinS2], GPIO.OUT)
+# relayPrec1 = gpiozero.OutputDevice(pin_list["PinPrec1"], active_high=True, initial_value=False)
+# relayPrec2 = gpiozero.OutputDevice(pin_list["PinPrec2"], active_high=True, initial_value=False)
+# relayS1 = gpiozero.OutputDevice(pin_list["PinS1"], active_high=True, initial_value=False)
+# relayS2 = gpiozero.OutputDevice(pin_list["PinS2"], active_high=True, initial_value=False)
 
 # # # # # # # # # # # # # # # # # # # # # # # #
 # Define global interface setup
@@ -117,46 +115,29 @@ def countdown(t, tot):
         time.sleep(t)
 
 
-def open_relay(Pin):
-    """
-    Open relay (low level trigger)
-    """
-    # GPIO.output(pin_list[Pin], GPIO.LOW)
-    print(Pin + ' opened')
-
-
-def close_relay(Pin):
-    """
-    Close relay (low level trigger)
-    """
-    # GPIO.output(pin_list[Pin], GPIO.HIGH)
-    print(Pin + ' closed')
-
-
 def HV_ON():
     """
     Turn HV on
     """
-    open_relay("PinS2")
+    # relayS2.on()
     time.sleep(0.05)
-    close_relay("PinS2")
+    # relayS2.off()
 
 
 def HV_OFF():
     """
     Turn HV off
     """
-    open_relay("PinS1")
+    # relayS1.on()
     time.sleep(0.05)
-    close_relay("PinS1")
+    # relayS1.off()
 
 
 def end_recipe():
     """
     Ending procedure for recipes
     """
-    print("The End")
-    # GPIO.cleanup()
+    print("...Done.")
     st.experimental_rerun()
 
 
@@ -175,8 +156,8 @@ def ALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     """
     Definition of ALD recipe
     """
-    close_relay("PinPrec1")
-    close_relay("PinPrec2")
+    # relayPrec1.off()
+    # relayPrec2.off()
     HV_OFF()
     steps = ["Pulse "+prec1+" – "+str(int(t1*1000))+"ms",
              "Purge "+prec1+" – "+str(p1)+"s",
@@ -190,10 +171,10 @@ def ALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
         remcycle.markdown("<div><h2><span class='highlight green'>"+
                            str(i+1)+" / "+str(N)+"</h2></span></div>", 
                            unsafe_allow_html=True)
-        open_relay("PinPrec1")
+        # relayPrec1.on()
         print_step(1, steps)
         countdown(t1, tot); tot=tot-t1
-        close_relay("PinPrec1")
+        # relayPrec1.off()
         print_step(2, steps)
         countdown(p1, tot); tot=tot-p1
         for j in range(N2):
@@ -202,10 +183,10 @@ def ALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
                                   str(i+1)+" / "+str(N)+"</span> – " +
                                   str(j+1)+" / "+str(N2)+"</h2></div>",
                                   unsafe_allow_html=True)
-            open_relay("PinPrec2")
+            # relayPrec2.on()
             print_step(3, steps)
             countdown(t2, tot); tot=tot-t2
-            close_relay("PinPrec2")
+            # relayPrec2.off()
             print_step(4, steps)
             countdown(p2, tot); tot=tot-p2
     end_recipe()
@@ -215,8 +196,8 @@ def PEALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     """
     Definition of PEALD recipe
     """
-    close_relay("PinPrec1")
-    close_relay("PinPrec2")
+    # relayPrec1.off()
+    # relayPrec2.off()
     HV_OFF()
     tot = (t1+p1+(t2+p2)*N2)*N
     steps = ["Pulse "+prec1+" – "+str(int(t1*1000))+"ms",
@@ -230,10 +211,10 @@ def PEALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
         remcycle.markdown("<div><h2><span class='highlight green'>" +
                           str(i+1)+" / "+str(N)+"</h2></span></div>",
                           unsafe_allow_html=True)
-        open_relay("PinPrec1")
+        # relayPrec1.on()
         print_step(1, steps)
         countdown(t1, tot); tot=tot-t1
-        close_relay("PinPrec1")
+        # relayPrec1.off()
         print_step(2, steps)
         countdown(p1, tot); tot=tot-p1
         for j in range(N2):
@@ -242,11 +223,11 @@ def PEALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
                                   str(i+1)+" / "+str(N)+"</span> – " +
                                   str(j+1)+" / "+str(N2)+"</h2></div>",
                                   unsafe_allow_html=True)
-            open_relay("PinPrec2")
+            # relayPrec2.on()
             HV_ON()
             print_step(3, steps)
             countdown(t2, tot); tot=tot-t2
-            close_relay("PinPrec2")
+            # relayPrec2.off()
             HV_OFF()
             print_step(4, steps)
             countdown(p2, tot); tot=tot-p2
@@ -257,8 +238,8 @@ def CVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     """
     Definition of CVD recipe
     """
-    close_relay("PinPrec1")
-    close_relay("PinPrec2")
+    # relayPrec1.off()
+    # relayPrec2.off()
     HV_OFF()
     steps = ["Pulse "+prec1+" – "+str(int(t1*1000))+"ms",
              "Purge "+prec1+" – "+str(p1)+"s",
@@ -270,10 +251,10 @@ def CVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
         remcycle.markdown("<div><h2><span class='highlight green'>" +
                           str(i+1)+" / "+str(N)+"</h2></span></div>",
                           unsafe_allow_html=True)
-        open_relay("PinPrec1")
+        # relayPrec1.on()
         print_step(1, steps)
         countdown(t1, tot); tot=tot-t1
-        close_relay("PinPrec1")
+        # relayPrec1.off()
         print_step(2, steps)
         countdown(p1, tot); tot=tot-p1
     end_recipe()
@@ -283,8 +264,8 @@ def PECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     """
     Definition of PECVD recipe
     """
-    close_relay("PinPrec1")
-    close_relay("PinPrec2")
+    # relayPrec1.off()
+    # relayPrec2.off()
     HV_OFF()
     steps = ["Pulse "+prec1+" – "+str(int(t1*1000))+"ms",
              "Purge "+prec1+" – "+str(p1)+"s",
@@ -298,10 +279,10 @@ def PECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
         remcycle.markdown("<div><h2><span class='highlight green'>" +
                           str(i+1)+" / "+str(N)+"</h2></span></div>",
                           unsafe_allow_html=True)
-        open_relay("PinPrec1")
+        # relayPrec1.on()
         print_step(1, steps)
         countdown(t1, tot); tot=tot-t1
-        close_relay("PinPrec1")
+        # relayPrec1.off()
         print_step(2, steps)
         countdown(p1, tot); tot=tot-p1
         for j in range(N2):
@@ -313,7 +294,7 @@ def PECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
             HV_ON()
             print_step(3, steps)
             countdown(t2, tot); tot=tot-t2
-            close_relay("PinPrec2")
+            # relayPrec2.off()
             HV_OFF()
             print_step(4, steps)
             countdown(p2, tot); tot=tot-p2
@@ -326,13 +307,13 @@ def Purge(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     """
     t1 = int(t1*1000)
     steps = ["Pulse "+prec1+" – "+str(t1)+"s"]
-    close_relay("PinPrec1")
-    close_relay("PinPrec2")
+    # relayPrec1.off()
+    # relayPrec2.off()
     HV_OFF()
-    open_relay("PinPrec1")
+    # relayPrec1.on()
     print_step(1, steps)
     countdown(t1, t1)
-    close_relay("PinPrec1")
+    # relayPrec1.off()
     end_recipe()
 
 
@@ -341,14 +322,14 @@ def Plasma_clean(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     Definition of a Plasma cleaning
     """
     steps = ["Pulse "+prec2+" – "+str(t2)+"s"]
-    close_relay("PinPrec1")
-    close_relay("PinPrec2")
+    # relayPrec1.off()
+    # relayPrec2.off()
     HV_OFF()
-    open_relay("PinPrec2")
+    # relayPrec2.on()
     HV_ON()
     print_step(1, steps)
     countdown(t2, t2)
-    close_relay("PinPrec2")
+    # relayPrec2.off()
     HV_OFF()
     end_recipe()
 
@@ -359,8 +340,8 @@ funcmap = {'ALD': ALD, 'PEALD': PEALD,
            'CVD': CVD, 'PECVD': PECVD, 
            'Purge': Purge, 'Plasma Cleaning': Plasma_clean}
 
-close_relay("PinPrec1")
-close_relay("PinPrec2")
+# relayPrec1.off()
+# relayPrec2.off()
 HV_OFF()
 
 recipe = st.sidebar.selectbox(
@@ -417,8 +398,8 @@ layout = st.sidebar.columns([1, 1])
 # # # # # # # # # # # # # # # # # # # # # # # #
 STOP = layout[0].button("STOP PROCESS")
 if STOP:
-    close_relay("PinPrec1")
-    close_relay("PinPrec2")
+    # relayPrec1.off()
+    # relayPrec2.off()
     HV_OFF()
     end_recipe()
 
