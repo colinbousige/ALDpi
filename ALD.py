@@ -12,29 +12,37 @@ from datetime import datetime, timedelta
 # # # # # # # # # # # # # # # # # # # # # # # #
 # Define pin list, output/input mode, and other variables
 # # # # # # # # # # # # # # # # # # # # # # # #
+
 Prec1 = "TEB"
 Prec2 = "H2"
-default = {"t1":15, 
-           "p1":40,
-           "t2":10,
-           "p2":40,
-           "N":100,
-           "N2":1}
+
+default = {"t1": 15,
+           "p1": 40,
+           "t2": 10,
+           "p2": 40,
+           "N": 100,
+           "N2": 1}
+t1 = default["t1"]
+p1 = default["p1"]
+t2 = default["t2"]
+p2 = default["p2"]
+N = default["N"]
+N2 = default["N2"]
 pin_list = {"PinPrec1": 1,
             "PinPrec2": 2, 
             "PinS1": 3, 
-            "PinS2": 4
-            }
+            "PinS2": 4}
 
 # GPIO.setmode(GPIO.BCM)
 # GPIO.setup(pin_list[PinPrec1], GPIO.OUT)
 # GPIO.setup(pin_list[PinPrec2], GPIO.OUT)
 # GPIO.setup(pin_list[PinS1], GPIO.OUT)
-# GPIO.setup(pin_list[PinW2], GPIO.OUT)
+# GPIO.setup(pin_list[PinS2], GPIO.OUT)
 
 # # # # # # # # # # # # # # # # # # # # # # # #
 # Define global interface setup
 # # # # # # # # # # # # # # # # # # # # # # # #
+
 st.set_page_config(layout="wide")
 
 st.title("ALD – CVD Process")
@@ -64,6 +72,7 @@ local_css("style.css")
 # # # # # # # # # # # # # # # # # # # # # # # #
 # Define functions
 # # # # # # # # # # # # # # # # # # # # # # # #
+
 def print_tot_time(tot):
     """
     Print total estimated time and estimated ending time
@@ -73,13 +82,15 @@ def print_tot_time(tot):
     tot = int(tot)
     totmins, totsecs = divmod(tot, 60)
     tothours, totmins = divmod(totmins, 60)
-    tottimer = '{:02d}:{:02d}:{:02d}'.format(
-                tothours, totmins, totsecs)
+    tottimer = '{:02d}:{:02d}:{:02d}'.format(tothours, totmins, totsecs)
     remcycle.markdown(
-        "<div><h2><span class='highlight green'>"+tottimer+"</h2></span></div>", unsafe_allow_html=True)
+        "<div><h2><span class='highlight green'>"+tottimer+"</h2></span></div>", 
+        unsafe_allow_html=True)
     final_time_text.write("# Estimated Ending Time:\n")
     final_time.markdown(
-        "<div><h2><span class='highlight red'>"+finaltime.strftime("%H:%M")+"</h2></span></div>", unsafe_allow_html=True)
+        "<div><h2><span class='highlight red'>"+finaltime.strftime("%H:%M")+
+        "</h2></span></div>", unsafe_allow_html=True)
+
 
 def countdown(t, tot):
     """
@@ -97,12 +108,14 @@ def countdown(t, tot):
             tothours, totmins = divmod(totmins, 60)
             tottimer = '{:02d}:{:02d}:{:02d}'.format(tothours, totmins, totsecs)
             remtottime.markdown(
-                "<div><h2><span class='highlight blue'>"+tottimer+"</h2></span></div>", unsafe_allow_html=True)
+                "<div><h2><span class='highlight blue'>"+tottimer+
+                "</h2></span></div>", unsafe_allow_html=True)
             time.sleep(1)
             t -= 1
             tot -= 1
     else:
         time.sleep(t)
+
 
 def open_relay(Pin):
     """
@@ -111,12 +124,14 @@ def open_relay(Pin):
     # GPIO.output(pin_list[Pin], GPIO.LOW)
     print(Pin + ' opened')
 
+
 def close_relay(Pin):
     """
     Close relay (low level trigger)
     """
     # GPIO.output(pin_list[Pin], GPIO.HIGH)
     print(Pin + ' closed')
+
 
 def HV_ON():
     """
@@ -126,6 +141,7 @@ def HV_ON():
     time.sleep(0.05)
     close_relay("PinS2")
 
+
 def HV_OFF():
     """
     Turn HV off
@@ -133,6 +149,16 @@ def HV_OFF():
     open_relay("PinS1")
     time.sleep(0.05)
     close_relay("PinS1")
+
+
+def end_recipe():
+    """
+    Ending procedure for recipes
+    """
+    print("The End")
+    # GPIO.cleanup()
+    st.experimental_rerun()
+
 
 def print_step(n, steps):
     """
@@ -143,6 +169,7 @@ def print_step(n, steps):
         annotated_steps[n-1] = "<span class='highlight green'>"+annotated_steps[n-1]+"</span>"
     annotated_steps = "<br><br><div>"+"<br><br>".join(annotated_steps)+"</div>"
     step_print.markdown(annotated_steps, unsafe_allow_html=True)
+
 
 def ALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     """
@@ -226,7 +253,7 @@ def PEALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     end_recipe()
 
 
-def CVD(t1=0.015, p1=40, N=100):
+def CVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     """
     Definition of CVD recipe
     """
@@ -250,6 +277,7 @@ def CVD(t1=0.015, p1=40, N=100):
         print_step(2, steps)
         countdown(p1, tot); tot=tot-p1
     end_recipe()
+
 
 def PECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     """
@@ -292,10 +320,11 @@ def PECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     end_recipe()
 
 
-def Purge(t1=100):
+def Purge(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     """
     Definition of a Precursor 1 Purge
     """
+    t1 = int(t1*1000)
     steps = ["Pulse "+prec1+" – "+str(t1)+"s"]
     close_relay("PinPrec1")
     close_relay("PinPrec2")
@@ -306,7 +335,8 @@ def Purge(t1=100):
     close_relay("PinPrec1")
     end_recipe()
 
-def Plasma_clean(t2=30):
+
+def Plasma_clean(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     """
     Definition of a Plasma cleaning
     """
@@ -322,27 +352,20 @@ def Plasma_clean(t2=30):
     HV_OFF()
     end_recipe()
 
-def end_recipe():
-    """
-    Ending procedure for recipes
-    """
-    print("The End")
-    st.experimental_rerun()
-    # GPIO.cleanup()
-
 # # # # # # # # # # # # # # # # # # # # # # # #
 # Define interactive interface for chosing recipe parameters
 # # # # # # # # # # # # # # # # # # # # # # # #
 funcmap = {'ALD': ALD, 'PEALD': PEALD,
            'CVD': CVD, 'PECVD': PECVD, 
-           'Purge': Purge, 'Plasma_clean': Plasma_clean}
+           'Purge': Purge, 'Plasma Cleaning': Plasma_clean}
 
 close_relay("PinPrec1")
 close_relay("PinPrec2")
 HV_OFF()
 
 recipe = st.sidebar.selectbox(
-    'Select Recipe', ['ALD', 'PEALD', 'CVD', 'PECVD', 'Purge', 'Plasma Cleaning'], 
+    'Select Recipe', 
+    ['ALD', 'PEALD', 'CVD', 'PECVD', 'Purge', 'Plasma Cleaning'], 
     key="recipe")
 
 st.sidebar.write("## Recipe Parameters")
@@ -404,12 +427,4 @@ if STOP:
 # # # # # # # # # # # # # # # # # # # # # # # #
 GObutton = layout[1].button('GO')
 if GObutton:
-    if recipe == "ALD" or  recipe == "PEALD" or  recipe == "PECVD":
-        funcmap[recipe](t1/1000, p1, t2, p2, N, N2)
-    elif recipe == "CVD":
-        CVD(t1/1000, p1, N)
-    elif recipe == "Purge":
-        Purge(t1)
-    elif recipe == "Plasma Cleaning":
-        Plasma_clean(t2)
-
+    funcmap[recipe](t1=t1/1000, p1=p1, t2=t2, p2=p2, N=N, N2=N2)
