@@ -9,6 +9,24 @@ import time
 from datetime import datetime, timedelta
 # import gpiozero
 
+st.set_page_config(
+    page_title="ALD – CVD Process",
+    page_icon=":hammer_and_pick:",
+    layout="wide",
+    initial_sidebar_state="expanded",
+    menu_items={
+        'Get Help': 'https://lmi.cnrs.fr/author/colin-bousige/',
+        'Report a bug': "https://lmi.cnrs.fr/author/colin-bousige/",
+        'About': """
+        ## ALD – CVD Process
+        Version date 2021-10-27.
+
+        This app was made by [Colin Bousige](https://lmi.cnrs.fr/author/colin-bousige/). Contact me for support or to signal a bug.
+        """
+    }
+)
+
+
 # # # # # # # # # # # # # # # # # # # # # # # #
 # Define pin list, output/input mode, and other variables
 # # # # # # # # # # # # # # # # # # # # # # # #
@@ -41,35 +59,34 @@ pin_list = {"PinPrec1": 1,
 # Define global interface setup
 # # # # # # # # # # # # # # # # # # # # # # # #
 
-st.set_page_config(layout="wide")
-
 st.title("ALD – CVD Process")
-c1, c2 = st.columns((1, 1))
-remcycletext = c1.empty()
-remcycle = c1.empty()
-step = c1.empty()
-step_print = c1.empty()
-remtottimetext = c2.empty()
-remtottime = c2.empty()
-remtimetext = c2.empty()
-remtime = c2.empty()
+c1, c2          = st.columns((1, 1))
+remcycletext    = c1.empty()
+remcycle        = c1.empty()
+remcyclebar     = c1.empty()
+step            = c1.empty()
+step_print      = c1.empty()
+remtottimetext  = c2.empty()
+remtottime      = c2.empty()
+remtimetext     = c2.empty()
+remtime         = c2.empty()
 final_time_text = c2.empty()
-final_time = c2.empty()
+final_time      = c2.empty()
 
-def local_css(file_name):
-    """
-    Define style from css file
-    """
-    with open(file_name) as f:
-        st.markdown('<style>{}</style>'.format(f.read()),
-                    unsafe_allow_html=True)
-
-local_css("style.css")
-
+with open("style.css") as f:
+    st.markdown('<style>{}</style>'.format(f.read()), unsafe_allow_html=True)
 
 # # # # # # # # # # # # # # # # # # # # # # # #
 # Define functions
 # # # # # # # # # # # # # # # # # # # # # # # #
+def initialize():
+    """
+    Close the relays and shut the plasma down
+    """
+    # relayPrec1.off()
+    # relayPrec2.off()
+    HV_OFF()
+
 
 def print_tot_time(tot):
     """
@@ -97,7 +114,7 @@ def countdown(t, tot):
     remtottimetext.write("# Total Remaining Time:\n")
     remtimetext.write("# Remaining time in current step:\n")
     tot = int(tot)
-    if t>1:
+    if t>=1:
         while t:
             mins, secs = divmod(t, 60)
             timer = '## {:02d}:{:02d}'.format(mins, secs)
@@ -137,7 +154,7 @@ def end_recipe():
     """
     Ending procedure for recipes
     """
-    print("...Done.")
+    print(" Done.")
     st.experimental_rerun()
 
 
@@ -156,21 +173,20 @@ def ALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     """
     Definition of ALD recipe
     """
-    # relayPrec1.off()
-    # relayPrec2.off()
-    HV_OFF()
+    initialize()
     steps = ["Pulse "+prec1+" – "+str(int(t1*1000))+"ms",
              "Purge "+prec1+" – "+str(p1)+"s",
              "Pulse "+prec2+" – "+str(t2)+"s",
              "Purge "+prec2+" – "+str(p2)+"s"
              ]
     tot = (t1+p1+(t2+p2)*N2)*N
-    print("\nStarting ALD procedure...\n")
+    print("\nStarting ALD procedure...", end='')
     for i in range(N):
         remcycletext.write("# Cycle number:\n")
         remcycle.markdown("<div><h2><span class='highlight green'>"+
                            str(i+1)+" / "+str(N)+"</h2></span></div>", 
                            unsafe_allow_html=True)
+        remcyclebar.progress(int((i+1)/N*100))
         # relayPrec1.on()
         print_step(1, steps)
         countdown(t1, tot); tot=tot-t1
@@ -189,6 +205,7 @@ def ALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
             # relayPrec2.off()
             print_step(4, steps)
             countdown(p2, tot); tot=tot-p2
+    st.balloons(); time.sleep(2)
     end_recipe()
 
 
@@ -196,21 +213,20 @@ def PEALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     """
     Definition of PEALD recipe
     """
-    # relayPrec1.off()
-    # relayPrec2.off()
-    HV_OFF()
+    initialize()
     tot = (t1+p1+(t2+p2)*N2)*N
     steps = ["Pulse "+prec1+" – "+str(int(t1*1000))+"ms",
              "Purge "+prec1+" – "+str(p1)+"s",
              "Pulse "+prec2+" + Plasma – "+str(t2)+"s",
              "Purge "+prec2+" – "+str(p2)+"s"
              ]
-    print("\nStarting PEALD procedure...\n")
+    print("\nStarting PEALD procedure...", end='')
     for i in range(N):
         remcycletext.write("# Cycle number:\n")
         remcycle.markdown("<div><h2><span class='highlight green'>" +
                           str(i+1)+" / "+str(N)+"</h2></span></div>",
                           unsafe_allow_html=True)
+        remcyclebar.progress(int((i+1)/N*100))
         # relayPrec1.on()
         print_step(1, steps)
         countdown(t1, tot); tot=tot-t1
@@ -231,6 +247,7 @@ def PEALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
             HV_OFF()
             print_step(4, steps)
             countdown(p2, tot); tot=tot-p2
+    st.balloons(); time.sleep(2)
     end_recipe()
 
 
@@ -238,25 +255,25 @@ def CVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     """
     Definition of CVD recipe
     """
-    # relayPrec1.off()
-    # relayPrec2.off()
-    HV_OFF()
+    initialize()
     steps = ["Pulse "+prec1+" – "+str(int(t1*1000))+"ms",
              "Purge "+prec1+" – "+str(p1)+"s",
              ]
     tot = (t1+p1)*N
-    print("\nStarting CVD procedure...\n")
+    print("\nStarting CVD procedure...", end='')
     for i in range(N):
         remcycletext.write("# Cycle number:\n")
         remcycle.markdown("<div><h2><span class='highlight green'>" +
                           str(i+1)+" / "+str(N)+"</h2></span></div>",
                           unsafe_allow_html=True)
+        remcyclebar.progress(int((i+1)/N*100))
         # relayPrec1.on()
         print_step(1, steps)
         countdown(t1, tot); tot=tot-t1
         # relayPrec1.off()
         print_step(2, steps)
         countdown(p1, tot); tot=tot-p1
+    st.balloons(); time.sleep(2)
     end_recipe()
 
 
@@ -264,21 +281,20 @@ def PECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     """
     Definition of PECVD recipe
     """
-    # relayPrec1.off()
-    # relayPrec2.off()
-    HV_OFF()
+    initialize()
     steps = ["Pulse "+prec1+" – "+str(int(t1*1000))+"ms",
              "Purge "+prec1+" – "+str(p1)+"s",
              "Plasma – "+str(t2)+"s",
              "Purge – "+str(p2)+"s"
              ]
     tot=(t1+p1+(t2+p2)*N2)*N
-    print("\nStarting CVD procedure...\n")
+    print("\nStarting CVD procedure...", end='')
     for i in range(N):
         remcycletext.write("# Cycle number:\n")
         remcycle.markdown("<div><h2><span class='highlight green'>" +
                           str(i+1)+" / "+str(N)+"</h2></span></div>",
                           unsafe_allow_html=True)
+        remcyclebar.progress(int((i+1)/N*100))
         # relayPrec1.on()
         print_step(1, steps)
         countdown(t1, tot); tot=tot-t1
@@ -298,6 +314,7 @@ def PECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
             HV_OFF()
             print_step(4, steps)
             countdown(p2, tot); tot=tot-p2
+    st.balloons(); time.sleep(2)
     end_recipe()
 
 
@@ -305,15 +322,15 @@ def Purge(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     """
     Definition of a Precursor 1 Purge
     """
+    print("\nStarting purging procedure...", end='')
     t1 = int(t1*1000)
     steps = ["Pulse "+prec1+" – "+str(t1)+"s"]
-    # relayPrec1.off()
-    # relayPrec2.off()
-    HV_OFF()
+    initialize()
     # relayPrec1.on()
     print_step(1, steps)
     countdown(t1, t1)
     # relayPrec1.off()
+    st.balloons(); time.sleep(2)
     end_recipe()
 
 
@@ -321,28 +338,26 @@ def Plasma_clean(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     """
     Definition of a Plasma cleaning
     """
+    print("\nStarting Plasma cleaning procedure...", end='')
     steps = ["Pulse "+prec2+" – "+str(t2)+"s"]
-    # relayPrec1.off()
-    # relayPrec2.off()
-    HV_OFF()
+    initialize()
     # relayPrec2.on()
     HV_ON()
     print_step(1, steps)
     countdown(t2, t2)
     # relayPrec2.off()
     HV_OFF()
+    st.balloons(); time.sleep(2)
     end_recipe()
 
 # # # # # # # # # # # # # # # # # # # # # # # #
 # Define interactive interface for chosing recipe parameters
 # # # # # # # # # # # # # # # # # # # # # # # #
+initialize()
+
 funcmap = {'ALD': ALD, 'PEALD': PEALD,
            'CVD': CVD, 'PECVD': PECVD, 
            'Purge': Purge, 'Plasma Cleaning': Plasma_clean}
-
-# relayPrec1.off()
-# relayPrec2.off()
-HV_OFF()
 
 recipe = st.sidebar.selectbox(
     'Select Recipe', 
@@ -398,9 +413,7 @@ layout = st.sidebar.columns([1, 1])
 # # # # # # # # # # # # # # # # # # # # # # # #
 STOP = layout[0].button("STOP PROCESS")
 if STOP:
-    # relayPrec1.off()
-    # relayPrec2.off()
-    HV_OFF()
+    initialize()
     end_recipe()
 
 # # # # # # # # # # # # # # # # # # # # # # # #
