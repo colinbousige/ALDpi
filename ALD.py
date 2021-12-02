@@ -9,6 +9,10 @@ import time
 from datetime import datetime, timedelta
 # import gpiozero
 
+# # # # # # # # # # # # # # # # # # # # # # # #
+# App configuration
+# # # # # # # # # # # # # # # # # # # # # # # #
+
 st.set_page_config(
     page_title="ALD – CVD Process",
     page_icon=":hammer_and_pick:",
@@ -21,11 +25,10 @@ st.set_page_config(
         ## ALD – CVD Process
         Version date 2021-10-27.
 
-        This app was made by [Colin Bousige](https://lmi.cnrs.fr/author/colin-bousige/). Contact me for support or to signal a bug.
+        This app was made by [Colin Bousige](https://lmi.cnrs.fr/author/colin-bousige/). Contact me for support, requests, or to signal a bug.
         """
     }
 )
-
 
 # # # # # # # # # # # # # # # # # # # # # # # #
 # Define pin list, output/input mode, and other variables
