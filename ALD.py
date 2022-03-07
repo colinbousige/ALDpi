@@ -6,8 +6,9 @@
 
 import streamlit as st
 import time
+import sys
 from datetime import datetime, timedelta
-import smbus
+# import smbus
 
 # # # # # # # # # # # # # # # # # # # # # # # #
 # App configuration
@@ -37,7 +38,7 @@ st.set_page_config(
 # Relays from the hat are commanded with I2C
 DEVICE_BUS = 1
 DEVICE_ADDR = 0x10
-bus = smbus.SMBus(DEVICE_BUS)
+# bus = smbus.SMBus(DEVICE_BUS)
 
 Prec1 = "TEB"
 Prec2 = "H2"
@@ -90,14 +91,14 @@ def turn_ON(relay):
     """
     Open relay from the hat with I2C command
     """
-    bus.write_byte_data(DEVICE_ADDR, relay, 0xFF)
+    # bus.write_byte_data(DEVICE_ADDR, relay, 0xFF)
 
 
 def turn_OFF(relay):
     """
     Close relay from the hat with I2C command
     """
-    bus.write_byte_data(DEVICE_ADDR, relay, 0x00)
+    # bus.write_byte_data(DEVICE_ADDR, relay, 0x00)
 
 
 def HV_ON():
@@ -200,10 +201,10 @@ def ALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     Definition of ALD recipe
     """
     initialize()
-    steps = ["Pulse "+prec1+" – "+str(int(t1*1000))+"ms",
-             "Purge "+prec1+" – "+str(p1)+"s",
-             "Pulse "+prec2+" – "+str(t2)+"s",
-             "Purge "+prec2+" – "+str(p2)+"s"
+    steps = [f"Pulse {prec1} – {int(t1*1000)} ms",
+             f"Purge {prec1} – {p1} s",
+             f"Pulse {prec2} – {t2} s",
+             f"Purge {prec2} – {p2} s"
              ]
     tot = (t1+p1+(t2+p2)*N2)*N
     print("\nStarting ALD procedure...", end='')
@@ -241,10 +242,10 @@ def PEALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     """
     initialize()
     tot = (t1+p1+(t2+p2)*N2)*N
-    steps = ["Pulse "+prec1+" – "+str(int(t1*1000))+"ms",
-             "Purge "+prec1+" – "+str(p1)+"s",
-             "Pulse "+prec2+" + Plasma – "+str(t2)+"s",
-             "Purge "+prec2+" – "+str(p2)+"s"
+    steps = [f"Pulse {prec1} – {int(t1*1000)} ms",
+             f"Purge {prec1} – {p1} s",
+             f"Pulse {prec2} + Plasma – {t2} s",
+             f"Purge {prec2} – {p2} s"
              ]
     print("\nStarting PEALD procedure...", end='')
     for i in range(N):
@@ -277,16 +278,16 @@ def PEALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     end_recipe()
 
 
-def CVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
+def PulsedCVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     """
-    Definition of CVD recipe
+    Definition of pulsed CVD recipe
     """
     initialize()
-    steps = ["Pulse "+prec1+" – "+str(int(t1*1000))+"ms",
-             "Purge "+prec1+" – "+str(p1)+"s",
+    steps = [f"Pulse {prec1} – {int(t1*1000)} ms",
+             f"Purge {prec1} – {p1} s",
              ]
     tot = (t1+p1)*N
-    print("\nStarting CVD procedure...", end='')
+    print("\nStarting Pulsed CVD procedure...", end='')
     for i in range(N):
         remcycletext.write("# Cycle number:\n")
         remcycle.markdown("<div><h2><span class='highlight green'>" +
@@ -303,18 +304,36 @@ def CVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     end_recipe()
 
 
-def PECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
+def CVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     """
-    Definition of PECVD recipe
+    Definition of CVD recipe
     """
     initialize()
-    steps = ["Pulse "+prec1+" – "+str(int(t1*1000))+"ms",
-             "Purge "+prec1+" – "+str(p1)+"s",
-             "Plasma – "+str(t2)+"s",
-             "Purge – "+str(p2)+"s"
+    steps = [f"Pulse {prec1} – {t1} s"]
+    tot = t1
+    print("\nStarting CVD procedure...", end='')
+
+    remcycletext.write(f"# Pulsing {prec1}...\n")
+    turn_ON(RelPrec1)
+    print_step(1, steps)
+    countdown(t1, tot)
+    turn_OFF(RelPrec1)
+    st.balloons(); time.sleep(2)
+    end_recipe()
+
+
+def PulsedPECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
+    """
+    Definition of pulsed PECVD recipe
+    """
+    initialize()
+    steps = [f"Pulse {prec1} - {int(t1*1000)} ms",
+             f"Purge {prec1} - {p1} s",
+             f"Plasma – {t2} s",
+             f"Purge – {p2} s"
              ]
     tot=(t1+p1+(t2+p2)*N2)*N
-    print("\nStarting CVD procedure...", end='')
+    print("\nStarting Pulsed PECVD procedure...", end='')
     for i in range(N):
         remcycletext.write("# Cycle number:\n")
         remcycle.markdown("<div><h2><span class='highlight green'>" +
@@ -344,13 +363,32 @@ def PECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     end_recipe()
 
 
+def PECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
+    """
+    Definition of PECVD recipe
+    """
+    initialize()
+    steps = [f"Pulse {prec1} – {t1} s"]
+    tot = t1
+    print("\nStarting PECVD procedure...", end='')
+    remcycletext.write(f"# Pulsing {prec1}...\n")
+    turn_ON(RelPrec1)
+    HV_ON()
+    print_step(1, steps)
+    countdown(t1, tot)
+    turn_OFF(RelPrec1)
+    HV_OFF()
+    st.balloons()
+    time.sleep(2)
+    end_recipe()
+
+
 def Purge(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     """
     Definition of a Precursor 1 Purge
     """
-    print("\nStarting purging procedure...", end='')
-    t1 = int(t1*1000)
-    steps = ["Pulse "+prec1+" – "+str(t1)+"s"]
+    print("\nStarting Purge procedure...", end='')
+    steps = [f"Pulse {prec1} – {t1} s"]
     initialize()
     turn_ON(RelPrec1)
     print_step(1, steps)
@@ -365,7 +403,7 @@ def Plasma_clean(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     Definition of a Plasma cleaning
     """
     print("\nStarting Plasma cleaning procedure...", end='')
-    steps = ["Pulse "+prec2+" – "+str(t2)+"s"]
+    steps = [f"Pulse {prec2} – {t2} s"]
     initialize()
     turn_ON(RelPrec2)
     HV_ON()
@@ -381,52 +419,84 @@ def Plasma_clean(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
 # # # # # # # # # # # # # # # # # # # # # # # #
 initialize()
 
-funcmap = {'ALD': ALD, 'PEALD': PEALD,
-           'CVD': CVD, 'PECVD': PECVD, 
+funcmap = {'ALD': ALD, 'PEALD': PEALD, 'CVD': CVD, 'PECVD': PECVD,
+           'Pulsed PECVD': PulsedPECVD, 'Pulsed CVD': PulsedCVD,
            'Purge': Purge, 'Plasma Cleaning': Plasma_clean}
 
 recipe = st.sidebar.selectbox(
     'Select Recipe', 
-    ['ALD', 'PEALD', 'CVD', 'PECVD', 'Purge', 'Plasma Cleaning'], 
+    ['ALD', 'PEALD', 'CVD', 'PECVD', 'Pulsed CVD',
+     'Pulsed PECVD', 'Purge', 'Plasma Cleaning'],
     key="recipe")
 
 st.sidebar.write("## Recipe Parameters")
 layout = st.sidebar.columns([1, 1])
 
-if recipe == "ALD" or recipe == "PEALD" or recipe == "PECVD" or recipe == "CVD":
+if recipe == "ALD" or recipe == "PEALD":
     prec1 = layout[0].text_input("Precursor 1:", Prec1)
     t1 = layout[0].slider("Pulse "+prec1+" (ms):", min_value=0,
                           step=1, max_value=100, value=default["t1"], key="t1")
+    t1 = t1/1000
     p1 = layout[0].slider("Purge "+prec1+" (s):", min_value=0,
                           step=1, max_value=100, value=default["p1"], key="p1")
-    if recipe != "CVD":
-        prec2text = layout[1].empty()
-        if recipe == "PECVD":
-            prec2 = prec2text.text_input("Precursor 2:", "Plasma")
-        else:
-            prec2 = prec2text.text_input("Precursor 2:", Prec2)
-        t2 = layout[1].slider("Pulse "+prec2+" (s):", min_value=0,
-                            step=1, max_value=100, value=default["t2"], key="t2")
-        p2 = layout[1].slider("Purge "+prec2+" (s):", min_value=0,
-                            step=1, max_value=100, value=default["p2"], key="p2")
-        N2 = layout[1].slider("N repeat "+prec2+":", min_value=0,
-                            step=1, max_value=20, value=default["N2"], key="N2")
+    prec2text = layout[1].empty()
+    if recipe == "PEALD":
+        prec2 = prec2text.text_input("Precursor 2 + Plasma:", Prec2)
+    else:
+        prec2 = prec2text.text_input("Precursor 2:", Prec2)
+    t2 = layout[1].slider("Pulse "+prec2+" (s):", min_value=0,
+                        step=1, max_value=100, value=default["t2"], key="t2")
+    p2 = layout[1].slider("Purge "+prec2+" (s):", min_value=0,
+                        step=1, max_value=100, value=default["p2"], key="p2")
+    N2 = layout[1].slider("N repeat "+prec2+":", min_value=0,
+                        step=1, max_value=20, value=default["N2"], key="N2")
     N = layout[0].slider("N Cycles:", min_value=0,
                             step=1, max_value=500, value=default["N"], key="N")
+if recipe == "Pulsed PECVD":
+    prec1 = layout[0].text_input("Precursor 1:", Prec1)
+    t1 = layout[0].slider("Pulse "+prec1+" (ms):", min_value=0,
+                          step=1, max_value=1000, value=default["t1"], key="t1")
+    t1 = t1/1000
+    p1 = layout[0].slider("Purge "+prec1+" (s):", min_value=0,
+                          step=1, max_value=100, value=default["p1"], key="p1")
+    prec2text = layout[1].empty()
+    t2 = layout[1].slider("Pulse Plasma (s):", min_value=0,
+                        step=1, max_value=1000, value=default["t2"], key="t2")
+    p2 = layout[1].slider("Purge Plasma (s):", min_value=0,
+                        step=1, max_value=1000, value=default["p2"], key="p2")
+    N2 = layout[1].slider("N repeat Plasma:", min_value=0,
+                        step=1, max_value=20, value=default["N2"], key="N2")
+    N = layout[0].slider("N Cycles:", min_value=0,
+                            step=1, max_value=500, value=default["N"], key="N")
+elif recipe == "Pulsed CVD":
+    prec1 = st.sidebar.text_input("Precursor 1:", Prec1)
+    t1 = st.sidebar.slider("Pulse "+prec1+" (ms):", min_value=0,
+                          step=1, max_value=1000, value=default["t1"], key="t1")
+    t1 = t1/1000
+    p1 = st.sidebar.slider("Purge "+prec1+" (s):", min_value=0,
+                          step=1, max_value=100, value=default["p1"], key="p1")
+elif recipe == "CVD":
+    prec1 = st.sidebar.text_input("Precursor 1:", Prec1)
+    t1 = st.sidebar.slider("Pulse "+prec1+" (s):", min_value=0,
+                          step=1, max_value=1000, value=120, key="t1")
+elif recipe == "PECVD":
+    prec1 = st.sidebar.text_input("Precursor 1 + Plasma:", Prec1)
+    t1 = st.sidebar.slider("Pulse "+prec1+" (s):", min_value=0,
+                          step=1, max_value=1000, value=120, key="t1")
 elif recipe == "Purge":
     prec1 = st.sidebar.text_input("Precursor 1:", Prec1)
     t1 = st.sidebar.slider("Pulse "+prec1+" (s):", min_value=0,
-                          step=1, max_value=500, value=150, key="t1")
+                          step=1, max_value=1000, value=150, key="t1")
 elif recipe == "Plasma Cleaning":
     prec2 = st.sidebar.text_input("Precursor 2:", "H2 + Plasma")
     t2 = st.sidebar.slider("Pulse "+prec2+" (s):", min_value=0,
                           step=1, max_value=1000, value=500, key="t2")
 
-if recipe == "ALD" or recipe == "PEALD" or recipe == "PECVD":
-    print_tot_time((t1/1000+p1+(t2+p2)*N2)*N)
-elif recipe == "CVD":
-    print_tot_time((t1/1000+p1)*N)
-elif recipe == "Purge":
+if recipe == "ALD" or recipe == "PEALD" or recipe == "Pulsed PECVD":
+    print_tot_time((t1+p1+(t2+p2)*N2)*N)
+elif recipe == "Pulsed CVD":
+    print_tot_time((t1+p1)*N)
+elif recipe == "Purge" or recipe == "CVD" or recipe == "PECVD":
     print_tot_time(t1)
 elif recipe == "Plasma Cleaning":
     print_tot_time(t2)
@@ -446,4 +516,6 @@ if STOP:
 # # # # # # # # # # # # # # # # # # # # # # # #
 GObutton = layout[1].button('GO')
 if GObutton:
-    funcmap[recipe](t1=t1/1000, p1=p1, t2=t2, p2=p2, N=N, N2=N2)
+    funcmap[recipe](t1=t1, p1=p1, t2=t2, p2=p2, N=N, N2=N2)
+
+
