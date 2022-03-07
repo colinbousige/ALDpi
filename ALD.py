@@ -7,7 +7,7 @@
 import streamlit as st
 import time
 from datetime import datetime, timedelta
-# import gpiozero
+import smbus
 
 # # # # # # # # # # # # # # # # # # # # # # # #
 # App configuration
@@ -34,6 +34,11 @@ st.set_page_config(
 # Define pin list, output/input mode, and other variables
 # # # # # # # # # # # # # # # # # # # # # # # #
 
+# Relays from the hat are commanded with I2C
+DEVICE_BUS = 1
+DEVICE_ADDR = 0x10
+bus = smbus.SMBus(DEVICE_BUS)
+
 Prec1 = "TEB"
 Prec2 = "H2"
 
@@ -49,14 +54,12 @@ t2 = default["t2"]
 p2 = default["p2"]
 N = default["N"]
 N2 = default["N2"]
-pin_list = {"PinPrec1": 1,
-            "PinPrec2": 2, 
-            "PinS1": 3, 
-            "PinS2": 4}
-# relayPrec1 = gpiozero.OutputDevice(pin_list["PinPrec1"], active_high=True, initial_value=False)
-# relayPrec2 = gpiozero.OutputDevice(pin_list["PinPrec2"], active_high=True, initial_value=False)
-# relayS1 = gpiozero.OutputDevice(pin_list["PinS1"], active_high=True, initial_value=False)
-# relayS2 = gpiozero.OutputDevice(pin_list["PinS2"], active_high=True, initial_value=False)
+
+# Relays attribution
+RelPrec1 = 1
+RelPrec2 = 2
+RelS1 = 3
+RelS2 = 4
 
 # # # # # # # # # # # # # # # # # # # # # # # #
 # Define global interface setup
@@ -82,12 +85,45 @@ with open("style.css") as f:
 # # # # # # # # # # # # # # # # # # # # # # # #
 # Define functions
 # # # # # # # # # # # # # # # # # # # # # # # #
+
+def turn_ON(relay):
+    """
+    Open relay from the hat with I2C command
+    """
+    bus.write_byte_data(DEVICE_ADDR, relay, 0xFF)
+
+
+def turn_OFF(relay):
+    """
+    Close relay from the hat with I2C command
+    """
+    bus.write_byte_data(DEVICE_ADDR, relay, 0x00)
+
+
+def HV_ON():
+    """
+    Turn HV on
+    """
+    turn_ON(RelS2)
+    time.sleep(0.05)
+    turn_OFF(RelS2)
+
+
+def HV_OFF():
+    """
+    Turn HV off
+    """
+    turn_ON(RelS1)
+    time.sleep(0.05)
+    turn_OFF(RelS1)
+
+
 def initialize():
     """
     Close the relays and shut the plasma down
     """
-    # relayPrec1.off()
-    # relayPrec2.off()
+    turn_OFF(RelPrec1)
+    turn_OFF(RelPrec2)
     HV_OFF()
 
 
@@ -135,29 +171,13 @@ def countdown(t, tot):
         time.sleep(t)
 
 
-def HV_ON():
-    """
-    Turn HV on
-    """
-    # relayS2.on()
-    time.sleep(0.05)
-    # relayS2.off()
-
-
-def HV_OFF():
-    """
-    Turn HV off
-    """
-    # relayS1.on()
-    time.sleep(0.05)
-    # relayS1.off()
-
-
 def end_recipe():
     """
     Ending procedure for recipes
     """
-    print(" Done.")
+    turn_OFF(RelPrec1)
+    turn_OFF(RelPrec2)
+    HV_OFF()
     st.experimental_rerun()
 
 
@@ -171,6 +191,9 @@ def print_step(n, steps):
     annotated_steps = "<br><br><div>"+"<br><br>".join(annotated_steps)+"</div>"
     step_print.markdown(annotated_steps, unsafe_allow_html=True)
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# RECIPES DEFINITIONS
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
 def ALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     """
@@ -190,10 +213,10 @@ def ALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
                            str(i+1)+" / "+str(N)+"</h2></span></div>", 
                            unsafe_allow_html=True)
         remcyclebar.progress(int((i+1)/N*100))
-        # relayPrec1.on()
+        turn_ON(RelPrec1)
         print_step(1, steps)
         countdown(t1, tot); tot=tot-t1
-        # relayPrec1.off()
+        turn_OFF(RelPrec1)
         print_step(2, steps)
         countdown(p1, tot); tot=tot-p1
         for j in range(N2):
@@ -202,10 +225,10 @@ def ALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
                                   str(i+1)+" / "+str(N)+"</span> – " +
                                   str(j+1)+" / "+str(N2)+"</h2></div>",
                                   unsafe_allow_html=True)
-            # relayPrec2.on()
+            turn_ON(RelPrec2)
             print_step(3, steps)
             countdown(t2, tot); tot=tot-t2
-            # relayPrec2.off()
+            turn_OFF(RelPrec2)
             print_step(4, steps)
             countdown(p2, tot); tot=tot-p2
     st.balloons(); time.sleep(2)
@@ -230,10 +253,10 @@ def PEALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
                           str(i+1)+" / "+str(N)+"</h2></span></div>",
                           unsafe_allow_html=True)
         remcyclebar.progress(int((i+1)/N*100))
-        # relayPrec1.on()
+        turn_ON(RelPrec1)
         print_step(1, steps)
         countdown(t1, tot); tot=tot-t1
-        # relayPrec1.off()
+        turn_OFF(RelPrec1)
         print_step(2, steps)
         countdown(p1, tot); tot=tot-p1
         for j in range(N2):
@@ -242,11 +265,11 @@ def PEALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
                                   str(i+1)+" / "+str(N)+"</span> – " +
                                   str(j+1)+" / "+str(N2)+"</h2></div>",
                                   unsafe_allow_html=True)
-            # relayPrec2.on()
+            turn_ON(RelPrec2)
             HV_ON()
             print_step(3, steps)
             countdown(t2, tot); tot=tot-t2
-            # relayPrec2.off()
+            turn_OFF(RelPrec2)
             HV_OFF()
             print_step(4, steps)
             countdown(p2, tot); tot=tot-p2
@@ -270,10 +293,10 @@ def CVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
                           str(i+1)+" / "+str(N)+"</h2></span></div>",
                           unsafe_allow_html=True)
         remcyclebar.progress(int((i+1)/N*100))
-        # relayPrec1.on()
+        turn_ON(RelPrec1)
         print_step(1, steps)
         countdown(t1, tot); tot=tot-t1
-        # relayPrec1.off()
+        turn_OFF(RelPrec1)
         print_step(2, steps)
         countdown(p1, tot); tot=tot-p1
     st.balloons(); time.sleep(2)
@@ -298,10 +321,10 @@ def PECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
                           str(i+1)+" / "+str(N)+"</h2></span></div>",
                           unsafe_allow_html=True)
         remcyclebar.progress(int((i+1)/N*100))
-        # relayPrec1.on()
+        turn_ON(RelPrec1)
         print_step(1, steps)
         countdown(t1, tot); tot=tot-t1
-        # relayPrec1.off()
+        turn_OFF(RelPrec1)
         print_step(2, steps)
         countdown(p1, tot); tot=tot-p1
         for j in range(N2):
@@ -313,7 +336,7 @@ def PECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
             HV_ON()
             print_step(3, steps)
             countdown(t2, tot); tot=tot-t2
-            # relayPrec2.off()
+            turn_OFF(RelPrec2)
             HV_OFF()
             print_step(4, steps)
             countdown(p2, tot); tot=tot-p2
@@ -329,10 +352,10 @@ def Purge(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     t1 = int(t1*1000)
     steps = ["Pulse "+prec1+" – "+str(t1)+"s"]
     initialize()
-    # relayPrec1.on()
+    turn_ON(RelPrec1)
     print_step(1, steps)
     countdown(t1, t1)
-    # relayPrec1.off()
+    turn_OFF(RelPrec1)
     st.balloons(); time.sleep(2)
     end_recipe()
 
@@ -344,11 +367,11 @@ def Plasma_clean(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     print("\nStarting Plasma cleaning procedure...", end='')
     steps = ["Pulse "+prec2+" – "+str(t2)+"s"]
     initialize()
-    # relayPrec2.on()
+    turn_ON(RelPrec2)
     HV_ON()
     print_step(1, steps)
     countdown(t2, t2)
-    # relayPrec2.off()
+    turn_OFF(RelPrec2)
     HV_OFF()
     st.balloons(); time.sleep(2)
     end_recipe()
@@ -416,7 +439,6 @@ layout = st.sidebar.columns([1, 1])
 # # # # # # # # # # # # # # # # # # # # # # # #
 STOP = layout[0].button("STOP PROCESS")
 if STOP:
-    initialize()
     end_recipe()
 
 # # # # # # # # # # # # # # # # # # # # # # # #
