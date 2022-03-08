@@ -6,8 +6,8 @@
 
 import streamlit as st
 import time
-import sys
 from datetime import datetime, timedelta
+from dateutil import parser
 # import smbus
 
 # # # # # # # # # # # # # # # # # # # # # # # #
@@ -61,6 +61,13 @@ RelPrec1 = 1
 RelPrec2 = 2
 RelS1 = 3
 RelS2 = 4
+
+if 'logname' not in st.session_state:
+    st.session_state['logname'] = ''
+if 'start_time' not in st.session_state:
+    st.session_state['start_time'] = ''
+if 'cycle_time' not in st.session_state:
+    st.session_state['cycle_time'] = ''
 
 # # # # # # # # # # # # # # # # # # # # # # # #
 # Define global interface setup
@@ -126,6 +133,17 @@ def initialize():
     turn_OFF(RelPrec1)
     turn_OFF(RelPrec2)
     HV_OFF()
+
+
+def append_to_file(logfile="log.txt", text=""):
+    with open(logfile, 'a') as fd:
+        fd.write(f'{text}\n')
+
+
+def write_to_log(logname, **kwargs):
+    toprint = {str(key): str(value) for key, value in kwargs.items()}
+    append_to_file(logname, text='\n'.join('{:15}  {:15}'.format(
+        key, value) for key, value in toprint.items()))
 
 
 def print_tot_time(tot):
@@ -201,12 +219,18 @@ def ALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     Definition of ALD recipe
     """
     initialize()
+    start_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
+    st.session_state['start_time'] = start_time
+    st.session_state['logname'] = f"Logs/{start_time}_{recipe}.txt"
+    tot = (t1+p1+(t2+p2)*N2)*N
+    st.session_state['cycle_time'] = tot/N
+    write_to_log(st.session_state['logname'], recipe=recipe, start=start_time, 
+                 t1=t1, p1=p1, t2=t2, p2=p2, N=N, N2=N2, time_per_cycle=timedelta(seconds=st.session_state['cycle_time']))
     steps = [f"Pulse {prec1} – {int(t1*1000)} ms",
              f"Purge {prec1} – {p1} s",
              f"Pulse {prec2} – {t2} s",
              f"Purge {prec2} – {p2} s"
              ]
-    tot = (t1+p1+(t2+p2)*N2)*N
     print("\nStarting ALD procedure...", end='')
     for i in range(N):
         remcycletext.write("# Cycle number:\n")
@@ -232,7 +256,11 @@ def ALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
             turn_OFF(RelPrec2)
             print_step(4, steps)
             countdown(p2, tot); tot=tot-p2
+    end_time=datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
     st.balloons(); time.sleep(2)
+    write_to_log(st.session_state['logname'], end=end_time, 
+                 duration=f"{parser.parse(end_time)-parser.parse(start_time)}",
+                 ending="normal")
     end_recipe()
 
 
@@ -241,7 +269,13 @@ def PEALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     Definition of PEALD recipe
     """
     initialize()
+    start_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
+    st.session_state['start_time'] = start_time
+    st.session_state['logname'] = f"Logs/{start_time}_{recipe}.txt"
     tot = (t1+p1+(t2+p2)*N2)*N
+    st.session_state['cycle_time'] = tot/N
+    write_to_log(st.session_state['logname'], recipe=recipe, start=start_time,
+                 t1=t1, p1=p1, t2=t2, p2=p2, N=N, N2=N2, time_per_cycle=timedelta(seconds=st.session_state['cycle_time']))
     steps = [f"Pulse {prec1} – {int(t1*1000)} ms",
              f"Purge {prec1} – {p1} s",
              f"Pulse {prec2} + Plasma – {t2} s",
@@ -274,7 +308,11 @@ def PEALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
             HV_OFF()
             print_step(4, steps)
             countdown(p2, tot); tot=tot-p2
+    end_time=datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
     st.balloons(); time.sleep(2)
+    write_to_log(st.session_state['logname'], end=end_time, 
+                 duration=f"{parser.parse(end_time)-parser.parse(start_time)}",
+                 ending="normal")
     end_recipe()
 
 
@@ -283,10 +321,16 @@ def PulsedCVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     Definition of pulsed CVD recipe
     """
     initialize()
+    start_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
+    st.session_state['start_time'] = start_time
+    st.session_state['logname'] = f"Logs/{start_time}_{recipe}.txt"
+    tot = (t1+p1)*N
+    st.session_state['cycle_time'] = tot/N
+    write_to_log(st.session_state['logname'], recipe=recipe, start=start_time,
+                 t1=t1, p1=p1, N=N, time_per_cycle=timedelta(seconds=st.session_state['cycle_time']))
     steps = [f"Pulse {prec1} – {int(t1*1000)} ms",
              f"Purge {prec1} – {p1} s",
              ]
-    tot = (t1+p1)*N
     print("\nStarting Pulsed CVD procedure...", end='')
     for i in range(N):
         remcycletext.write("# Cycle number:\n")
@@ -300,7 +344,11 @@ def PulsedCVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
         turn_OFF(RelPrec1)
         print_step(2, steps)
         countdown(p1, tot); tot=tot-p1
+    end_time=datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
     st.balloons(); time.sleep(2)
+    write_to_log(st.session_state['logname'], end=end_time, 
+                 duration=f"{parser.parse(end_time)-parser.parse(start_time)}",
+                 ending="normal")
     end_recipe()
 
 
@@ -309,16 +357,25 @@ def CVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     Definition of CVD recipe
     """
     initialize()
-    steps = [f"Pulse {prec1} – {t1} s"]
+    start_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
+    st.session_state['start_time'] = start_time
+    st.session_state['logname'] = f"Logs/{start_time}_{recipe}.txt"
     tot = t1
+    st.session_state['cycle_time'] = tot
+    write_to_log(st.session_state['logname'], recipe=recipe, start=start_time,
+                 t1=t1, time_per_cycle=timedelta(seconds=st.session_state['cycle_time']))
+    steps = [f"Pulse {prec1} – {t1} s"]
     print("\nStarting CVD procedure...", end='')
-
     remcycletext.write(f"# Pulsing {prec1}...\n")
     turn_ON(RelPrec1)
     print_step(1, steps)
     countdown(t1, tot)
     turn_OFF(RelPrec1)
+    end_time=datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
     st.balloons(); time.sleep(2)
+    write_to_log(st.session_state['logname'], end=end_time, 
+                 duration=f"{parser.parse(end_time)-parser.parse(start_time)}",
+                 ending="normal")
     end_recipe()
 
 
@@ -327,12 +384,18 @@ def PulsedPECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     Definition of pulsed PECVD recipe
     """
     initialize()
+    start_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
+    st.session_state['start_time'] = start_time
+    st.session_state['logname'] = f"Logs/{start_time}_{recipe}.txt"
+    tot = (t1+p1+(t2+p2)*N2)*N
+    st.session_state['cycle_time'] = tot/N
+    write_to_log(st.session_state['logname'], recipe=recipe, start=start_time,
+                 t1=t1, p1=p1, t2=t2, p2=p2, N=N, N2=N2, time_per_cycle=timedelta(seconds=st.session_state['cycle_time']))
     steps = [f"Pulse {prec1} - {int(t1*1000)} ms",
              f"Purge {prec1} - {p1} s",
              f"Plasma – {t2} s",
              f"Purge – {p2} s"
              ]
-    tot=(t1+p1+(t2+p2)*N2)*N
     print("\nStarting Pulsed PECVD procedure...", end='')
     for i in range(N):
         remcycletext.write("# Cycle number:\n")
@@ -359,7 +422,11 @@ def PulsedPECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
             HV_OFF()
             print_step(4, steps)
             countdown(p2, tot); tot=tot-p2
+    end_time=datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
     st.balloons(); time.sleep(2)
+    write_to_log(st.session_state['logname'], end=end_time, 
+                 duration=f"{parser.parse(end_time)-parser.parse(start_time)}",
+                 ending="normal")
     end_recipe()
 
 
@@ -368,8 +435,14 @@ def PECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     Definition of PECVD recipe
     """
     initialize()
-    steps = [f"Pulse {prec1} – {t1} s"]
+    start_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
+    st.session_state['start_time'] = start_time
+    st.session_state['logname'] = f"Logs/{start_time}_{recipe}.txt"
     tot = t1
+    st.session_state['cycle_time'] = tot
+    write_to_log(st.session_state['logname'], recipe=recipe, start=start_time,
+                 t1=t1,time_per_cycle=timedelta(seconds=st.session_state['cycle_time']))
+    steps = [f"Pulse {prec1} – {t1} s"]
     print("\nStarting PECVD procedure...", end='')
     remcycletext.write(f"# Pulsing {prec1}...\n")
     turn_ON(RelPrec1)
@@ -378,8 +451,11 @@ def PECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     countdown(t1, tot)
     turn_OFF(RelPrec1)
     HV_OFF()
-    st.balloons()
-    time.sleep(2)
+    end_time=datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
+    st.balloons(); time.sleep(2)
+    write_to_log(st.session_state['logname'], end=end_time, 
+                 duration=f"{parser.parse(end_time)-parser.parse(start_time)}",
+                 ending="normal")
     end_recipe()
 
 
@@ -390,11 +466,22 @@ def Purge(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     print("\nStarting Purge procedure...", end='')
     steps = [f"Pulse {prec1} – {t1} s"]
     initialize()
+    start_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
+    st.session_state['start_time'] = start_time
+    st.session_state['logname'] = f"Logs/{start_time}_{recipe}.txt"
+    tot = t1
+    st.session_state['cycle_time'] = tot
+    write_to_log(st.session_state['logname'], recipe=recipe, start=start_time,
+                 t1=t1)
     turn_ON(RelPrec1)
     print_step(1, steps)
     countdown(t1, t1)
     turn_OFF(RelPrec1)
+    end_time=datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
     st.balloons(); time.sleep(2)
+    write_to_log(st.session_state['logname'], end=end_time, 
+                 duration=f"{parser.parse(end_time)-parser.parse(start_time)}",
+                 ending="normal")
     end_recipe()
 
 
@@ -405,13 +492,24 @@ def Plasma_clean(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1):
     print("\nStarting Plasma cleaning procedure...", end='')
     steps = [f"Pulse {prec2} – {t2} s"]
     initialize()
+    start_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
+    st.session_state['start_time'] = start_time
+    st.session_state['logname'] = f"Logs/{start_time}_{recipe}.txt"
+    tot = t2
+    st.session_state['cycle_time'] = tot
+    write_to_log(st.session_state['logname'], recipe=recipe, start=start_time,
+                 t2=t2)
     turn_ON(RelPrec2)
     HV_ON()
     print_step(1, steps)
     countdown(t2, t2)
     turn_OFF(RelPrec2)
     HV_OFF()
+    end_time=datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
     st.balloons(); time.sleep(2)
+    write_to_log(st.session_state['logname'], end=end_time, 
+                 duration=f"{parser.parse(end_time)-parser.parse(start_time)}",
+                 ending="normal")
     end_recipe()
 
 # # # # # # # # # # # # # # # # # # # # # # # #
@@ -424,10 +522,9 @@ funcmap = {'ALD': ALD, 'PEALD': PEALD, 'CVD': CVD, 'PECVD': PECVD,
            'Purge': Purge, 'Plasma Cleaning': Plasma_clean}
 
 recipe = st.sidebar.selectbox(
-    'Select Recipe', 
-    ['ALD', 'PEALD', 'CVD', 'PECVD', 'Pulsed CVD',
-     'Pulsed PECVD', 'Purge', 'Plasma Cleaning'],
-    key="recipe")
+    label='Select Recipe', key="recipe",
+    options = ['ALD', 'PEALD', 'CVD', 'PECVD', 'Pulsed CVD',
+     'Pulsed PECVD', 'Purge', 'Plasma Cleaning'])
 
 st.sidebar.write("## Recipe Parameters")
 layout = st.sidebar.columns([1, 1])
@@ -475,6 +572,8 @@ elif recipe == "Pulsed CVD":
     t1 = t1/1000
     p1 = st.sidebar.slider("Purge "+prec1+" (s):", min_value=0,
                           step=1, max_value=100, value=default["p1"], key="p1")
+    N = st.sidebar.slider("N Cycles:", min_value=0,
+                         step=1, max_value=500, value=default["N"], key="N")
 elif recipe == "CVD":
     prec1 = st.sidebar.text_input("Precursor 1:", Prec1)
     t1 = st.sidebar.slider("Pulse "+prec1+" (s):", min_value=0,
@@ -509,6 +608,14 @@ layout = st.sidebar.columns([1, 1])
 # # # # # # # # # # # # # # # # # # # # # # # #
 STOP = layout[0].button("STOP PROCESS")
 if STOP:
+    end_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
+    duration = f"{parser.parse(end_time)-parser.parse(st.session_state['start_time'])}"
+    duration_s = sum(int(x) * 60 ** i for i, x in enumerate(reversed(duration.split(':'))))
+    cycles_done = int(duration_s / st.session_state['cycle_time'])+1
+    write_to_log(st.session_state['logname'], end=end_time, 
+                 duration=duration,
+                 cycles_done=cycles_done,
+                 ending = "forced")
     end_recipe()
 
 # # # # # # # # # # # # # # # # # # # # # # # #
@@ -517,5 +624,4 @@ if STOP:
 GObutton = layout[1].button('GO')
 if GObutton:
     funcmap[recipe](t1=t1, p1=p1, t2=t2, p2=p2, N=N, N2=N2)
-
 
