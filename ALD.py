@@ -8,7 +8,7 @@ import streamlit as st
 import time
 from datetime import datetime, timedelta
 from dateutil import parser
-# import smbus
+import smbus
 
 # # # # # # # # # # # # # # # # # # # # # # # #
 # App configuration
@@ -38,7 +38,7 @@ st.set_page_config(
 # Relays from the hat are commanded with I2C
 DEVICE_BUS = 1
 DEVICE_ADDR = 0x10
-# bus = smbus.SMBus(DEVICE_BUS)
+bus = smbus.SMBus(DEVICE_BUS)
 
 Prec1 = "TEB"
 Prec2 = "H2"
@@ -98,14 +98,14 @@ def turn_ON(relay):
     """
     Open relay from the hat with I2C command
     """
-    # bus.write_byte_data(DEVICE_ADDR, relay, 0xFF)
+    bus.write_byte_data(DEVICE_ADDR, relay, 0xFF)
 
 
 def turn_OFF(relay):
     """
     Close relay from the hat with I2C command
     """
-    # bus.write_byte_data(DEVICE_ADDR, relay, 0x00)
+    bus.write_byte_data(DEVICE_ADDR, relay, 0x00)
 
 
 def HV_ON():
@@ -142,7 +142,7 @@ def append_to_file(logfile="log.txt", text=""):
 
 def write_to_log(logname, **kwargs):
     toprint = {str(key): str(value) for key, value in kwargs.items()}
-    append_to_file(logname, text='\n'.join('{:15}  {:15}'.format(
+    append_to_file(logname, text='\n'.join('{:15}  {}'.format(
         key, value) for key, value in toprint.items()))
 
 
