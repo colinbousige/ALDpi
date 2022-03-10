@@ -8,7 +8,7 @@ import streamlit as st
 import time
 from datetime import datetime, timedelta
 from dateutil import parser
-import smbus
+# import smbus
 import citobase as cb
 
 # # # # # # # # # # # # # # # # # # # # # # # #
@@ -54,7 +54,7 @@ st.markdown(
 # Relays from the hat are commanded with I2C
 DEVICE_BUS = 1
 DEVICE_ADDR = 0x10
-bus = smbus.SMBus(DEVICE_BUS)
+# bus = smbus.SMBus(DEVICE_BUS)
 
 # Default precursor names
 Prec1 = "TEB"
@@ -67,7 +67,7 @@ default = {"t1": 15, # in ms
            "p2": 40, # in s
            "N": 100, # in s
            "N2": 1, # in s
-           "plasma": 1.0} # in Watts
+           "plasma": 300.0} # in Watts
 t1 = default["t1"]
 p1 = default["p1"]
 t2 = default["t2"]
@@ -122,22 +122,30 @@ def turn_ON(relay):
     """
     Open relay from the hat with I2C command
     """
-    bus.write_byte_data(DEVICE_ADDR, relay, 0xFF)
+    # bus.write_byte_data(DEVICE_ADDR, relay, 0xFF)
 
 
 def turn_OFF(relay):
     """
     Close relay from the hat with I2C command
     """
-    bus.write_byte_data(DEVICE_ADDR, relay, 0x00)
+    # bus.write_byte_data(DEVICE_ADDR, relay, 0x00)
 
 
-def set_plasma(plasma):
+def set_plasma(plasma, logname=None):
     """
     Open the connection to the RF generator and setupe the plasma power
     """
-    citoctrl.open()
-    citoctrl.set_power_setpoint_watts(plasma)  # set the rf power
+    if citoctrl.open():
+        citoctrl.set_power_setpoint_watts(plasma)  # set the rf power
+        st.success("Connection with RF generator OK.")
+        st.info(f"RF power setpoint: {citoctrl.get_power_setpoint_watts()[1]}")
+    else:
+        st.error("Can't open connection to the RF generator.")
+        if logname is not None:
+            write_to_log(logname, plasma_active="No")
+        return(False)
+
 
 def HV_ON():
     """
@@ -267,7 +275,6 @@ def ALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1):
              f"Pulse {prec2} – {t2} s",
              f"Purge {prec2} – {p2} s"
              ]
-    print("\nStarting ALD procedure...", end='')
     for i in range(N):
         remcycletext.write("# Cycle number:\n")
         remcycle.markdown("<div><h2><span class='highlight green'>"+
@@ -305,7 +312,6 @@ def PEALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1):
     Definition of PEALD recipe
     """
     initialize()
-    set_plasma(plasma)
     start_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
     st.session_state['start_time'] = start_time
     st.session_state['logname'] = f"Logs/{start_time}_{recipe}.txt"
@@ -314,12 +320,12 @@ def PEALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1):
     write_to_log(st.session_state['logname'], recipe=recipe, start=start_time,
                  t1=t1, p1=p1, t2=t2, p2=p2, N=N, N2=N2, plasma=plasma,
                  time_per_cycle=timedelta(seconds=st.session_state['cycle_time']))
+    set_plasma(plasma, st.session_state['logname'])
     steps = [f"Pulse {prec1} – {int(t1*1000)} ms",
              f"Purge {prec1} – {p1} s",
              f"Pulse {prec2} + Plasma – {t2} s",
              f"Purge {prec2} – {p2} s"
              ]
-    print("\nStarting PEALD procedure...", end='')
     for i in range(N):
         remcycletext.write("# Cycle number:\n")
         remcycle.markdown("<div><h2><span class='highlight green'>" +
@@ -369,7 +375,6 @@ def PulsedCVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1):
     steps = [f"Pulse {prec1} – {int(t1*1000)} ms",
              f"Purge {prec1} – {p1} s",
              ]
-    print("\nStarting Pulsed CVD procedure...", end='')
     for i in range(N):
         remcycletext.write("# Cycle number:\n")
         remcycle.markdown("<div><h2><span class='highlight green'>" +
@@ -403,7 +408,6 @@ def CVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1):
     write_to_log(st.session_state['logname'], recipe=recipe, start=start_time,
                  t1=t1, time_per_cycle=timedelta(seconds=st.session_state['cycle_time']))
     steps = [f"Pulse {prec1} – {t1} s"]
-    print("\nStarting CVD procedure...", end='')
     remcycletext.write(f"# Pulsing {prec1}...\n")
     turn_ON(RelPrec1)
     print_step(1, steps)
@@ -422,7 +426,6 @@ def PulsedPECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1):
     Definition of pulsed PECVD recipe
     """
     initialize()
-    set_plasma(plasma)
     start_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
     st.session_state['start_time'] = start_time
     st.session_state['logname'] = f"Logs/{start_time}_{recipe}.txt"
@@ -431,12 +434,12 @@ def PulsedPECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1):
     write_to_log(st.session_state['logname'], recipe=recipe, start=start_time,
                  t1=t1, p1=p1, t2=t2, p2=p2, N=N, N2=N2, plasma=plasma,
                  time_per_cycle=timedelta(seconds=st.session_state['cycle_time']))
+    set_plasma(plasma, st.session_state['logname'])
     steps = [f"Pulse {prec1} - {int(t1*1000)} ms",
              f"Purge {prec1} - {p1} s",
              f"Plasma – {t2} s",
              f"Purge – {p2} s"
              ]
-    print("\nStarting Pulsed PECVD procedure...", end='')
     for i in range(N):
         remcycletext.write("# Cycle number:\n")
         remcycle.markdown("<div><h2><span class='highlight green'>" +
@@ -475,7 +478,6 @@ def PECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1):
     Definition of PECVD recipe
     """
     initialize()
-    set_plasma(plasma)
     start_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
     st.session_state['start_time'] = start_time
     st.session_state['logname'] = f"Logs/{start_time}_{recipe}.txt"
@@ -484,8 +486,8 @@ def PECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1):
     write_to_log(st.session_state['logname'], recipe=recipe, start=start_time,
                  t1=t1, plasma=plasma,
                  time_per_cycle=timedelta(seconds=st.session_state['cycle_time']))
+    set_plasma(plasma, st.session_state['logname'])
     steps = [f"Pulse {prec1} – {t1} s"]
-    print("\nStarting PECVD procedure...", end='')
     remcycletext.write(f"# Pulsing {prec1}...\n")
     turn_ON(RelPrec1)
     HV_ON()
@@ -505,7 +507,6 @@ def Purge(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1):
     """
     Definition of a Precursor 1 Purge
     """
-    print("\nStarting Purge procedure...", end='')
     steps = [f"Pulse {prec1} – {t1} s"]
     initialize()
     start_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
@@ -532,8 +533,6 @@ def Plasma_clean(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1):
     Definition of a Plasma cleaning
     """
     initialize()
-    set_plasma(plasma)
-    print("\nStarting Plasma cleaning procedure...", end='')
     steps = [f"Pulse {prec2} – {t2} s"]
     start_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
     st.session_state['start_time'] = start_time
@@ -542,6 +541,7 @@ def Plasma_clean(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1):
     st.session_state['cycle_time'] = tot
     write_to_log(st.session_state['logname'], recipe=recipe, start=start_time,
                  t2=t2, plasma=plasma)
+    set_plasma(plasma, st.session_state['logname'])
     turn_ON(RelPrec2)
     HV_ON()
     print_step(1, steps)
@@ -653,12 +653,18 @@ elif recipe == "Purge" or recipe == "CVD" or recipe == "PECVD":
 elif recipe == "Plasma Cleaning":
     print_tot_time(t2)
 
-layout[0].write("\n")
-layout = st.sidebar.columns([1, 1])
 
 # # # # # # # # # # # # # # # # # # # # # # # #
 # STOP button
 # # # # # # # # # # # # # # # # # # # # # # # #
+if recipe == "PEALD" or recipe == "Plasma Cleaning" \
+    or recipe == "Pulsed PECVD" or recipe == "PECVD":
+    test_plasma = st.sidebar.button('Test connection to RF generator')
+    if test_plasma:
+        set_plasma(plasma)
+
+layout = st.sidebar.columns([1, 1])
+
 STOP = layout[0].button("STOP PROCESS")
 if STOP:
     end_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
