@@ -8,7 +8,7 @@ import streamlit as st
 import time
 from datetime import datetime, timedelta
 from dateutil import parser
-# import smbus
+import smbus
 import citobase as cb
 
 # # # # # # # # # # # # # # # # # # # # # # # #
@@ -54,7 +54,7 @@ st.markdown(
 # Relays from the hat are commanded with I2C
 DEVICE_BUS = 1
 DEVICE_ADDR = 0x10
-# bus = smbus.SMBus(DEVICE_BUS)
+bus = smbus.SMBus(DEVICE_BUS)
 
 # Default precursor names
 Prec1 = "TEB"
@@ -122,14 +122,14 @@ def turn_ON(relay):
     """
     Open relay from the hat with I2C command
     """
-    # bus.write_byte_data(DEVICE_ADDR, relay, 0xFF)
+    bus.write_byte_data(DEVICE_ADDR, relay, 0xFF)
 
 
 def turn_OFF(relay):
     """
     Close relay from the hat with I2C command
     """
-    # bus.write_byte_data(DEVICE_ADDR, relay, 0x00)
+    bus.write_byte_data(DEVICE_ADDR, relay, 0x00)
 
 
 def set_plasma(plasma, logname=None):
