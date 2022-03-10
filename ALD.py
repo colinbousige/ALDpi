@@ -9,6 +9,7 @@ import time
 from datetime import datetime, timedelta
 from dateutil import parser
 import smbus
+import citobase as cb
 
 # # # # # # # # # # # # # # # # # # # # # # # #
 # App configuration
@@ -47,7 +48,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 # # # # # # # # # # # # # # # # # # # # # # # #
-# Define pin list, output/input mode, and other variables
+# Define variables
 # # # # # # # # # # # # # # # # # # # # # # # #
 
 # Relays from the hat are commanded with I2C
@@ -55,16 +56,18 @@ DEVICE_BUS = 1
 DEVICE_ADDR = 0x10
 bus = smbus.SMBus(DEVICE_BUS)
 
+# Default precursor names
 Prec1 = "TEB"
 Prec2 = "H2"
 
-default = {"t1": 15,
-           "p1": 40,
-           "t2": 10,
-           "p2": 40,
-           "N": 100,
-           "N2": 1,
-           "plasma": 1.0}
+# Default recipe values
+default = {"t1": 15, # in ms
+           "p1": 40, # in s
+           "t2": 10, # in s
+           "p2": 40, # in s
+           "N": 100, # in s
+           "N2": 1, # in s
+           "plasma": 1.0} # in Watts
 t1 = default["t1"]
 p1 = default["p1"]
 t2 = default["t2"]
@@ -79,6 +82,11 @@ RelPrec2 = 2
 RelS1 = 3
 RelS2 = 4
 
+# IP Address of the Cito Plus RF generator, connected by Ethernet
+cito_address = "169.254.1.1"
+citoctrl = cb.CitoBase(host_mode=0, host_addr=cito_address) # 0 for Ethernet
+
+# For writing into the log at the end of the recipe, whether it's a normal or forced ending
 if 'logname' not in st.session_state:
     st.session_state['logname'] = ''
 if 'start_time' not in st.session_state:
@@ -90,7 +98,6 @@ if 'cycle_time' not in st.session_state:
 # Define global interface setup
 # # # # # # # # # # # # # # # # # # # # # # # #
 
-# st.sidebar.title("ALD – CVD Process")
 c1, c2          = st.columns((1, 1))
 remcycletext    = c1.empty()
 remcycle        = c1.empty()
@@ -125,31 +132,39 @@ def turn_OFF(relay):
     bus.write_byte_data(DEVICE_ADDR, relay, 0x00)
 
 
-def HV_ON(plasma):
+def set_plasma(plasma):
     """
-    Turn HV on and set the plasma power
+    Open the connection to the RF generator and setupe the plasma power
     """
-    turn_ON(RelS2)
-    time.sleep(0.05)
-    turn_OFF(RelS2)
+    citoctrl.open()
+    citoctrl.set_power_setpoint_watts(plasma)  # set the rf power
+
+def HV_ON():
+    """
+    Turn HV on
+    """
+    # turn_ON(RelS2)
+    # time.sleep(0.05)
+    # turn_OFF(RelS2)
+    citoctrl.set_rf_on()
 
 
 def HV_OFF():
     """
     Turn HV off
     """
-    turn_ON(RelS1)
-    time.sleep(0.05)
-    turn_OFF(RelS1)
+    # turn_ON(RelS1)
+    # time.sleep(0.05)
+    # turn_OFF(RelS1)
+    citoctrl.set_rf_off()  # turn off the rf
 
 
 def initialize():
     """
-    Close the relays and shut the plasma down
+    Make sure the relays are closed
     """
     turn_OFF(RelPrec1)
     turn_OFF(RelPrec2)
-    HV_OFF()
 
 
 def append_to_file(logfile="log.txt", text=""):
@@ -215,7 +230,9 @@ def end_recipe():
     """
     turn_OFF(RelPrec1)
     turn_OFF(RelPrec2)
-    HV_OFF()
+    if citoctrl.open():
+        HV_OFF()
+        citoctrl.close()
     st.experimental_rerun()
 
 
@@ -288,6 +305,7 @@ def PEALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1):
     Definition of PEALD recipe
     """
     initialize()
+    set_plasma(plasma)
     start_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
     st.session_state['start_time'] = start_time
     st.session_state['logname'] = f"Logs/{start_time}_{recipe}.txt"
@@ -321,7 +339,7 @@ def PEALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1):
                                   str(j+1)+" / "+str(N2)+"</h2></div>",
                                   unsafe_allow_html=True)
             turn_ON(RelPrec2)
-            HV_ON(plasma)
+            HV_ON()
             print_step(3, steps)
             countdown(t2, tot); tot=tot-t2
             turn_OFF(RelPrec2)
@@ -404,6 +422,7 @@ def PulsedPECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1):
     Definition of pulsed PECVD recipe
     """
     initialize()
+    set_plasma(plasma)
     start_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
     st.session_state['start_time'] = start_time
     st.session_state['logname'] = f"Logs/{start_time}_{recipe}.txt"
@@ -436,7 +455,7 @@ def PulsedPECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1):
                                   str(i+1)+" / "+str(N)+"</span> – " +
                                   str(j+1)+" / "+str(N2)+"</h2></div>",
                                   unsafe_allow_html=True)
-            HV_ON(plasma)
+            HV_ON()
             print_step(3, steps)
             countdown(t2, tot); tot=tot-t2
             turn_OFF(RelPrec2)
@@ -456,6 +475,7 @@ def PECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1):
     Definition of PECVD recipe
     """
     initialize()
+    set_plasma(plasma)
     start_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
     st.session_state['start_time'] = start_time
     st.session_state['logname'] = f"Logs/{start_time}_{recipe}.txt"
@@ -468,7 +488,7 @@ def PECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1):
     print("\nStarting PECVD procedure...", end='')
     remcycletext.write(f"# Pulsing {prec1}...\n")
     turn_ON(RelPrec1)
-    HV_ON(plasma)
+    HV_ON()
     print_step(1, steps)
     countdown(t1, tot)
     turn_OFF(RelPrec1)
@@ -511,9 +531,10 @@ def Plasma_clean(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1):
     """
     Definition of a Plasma cleaning
     """
+    initialize()
+    set_plasma(plasma)
     print("\nStarting Plasma cleaning procedure...", end='')
     steps = [f"Pulse {prec2} – {t2} s"]
-    initialize()
     start_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
     st.session_state['start_time'] = start_time
     st.session_state['logname'] = f"Logs/{start_time}_{recipe}.txt"
@@ -522,7 +543,7 @@ def Plasma_clean(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1):
     write_to_log(st.session_state['logname'], recipe=recipe, start=start_time,
                  t2=t2, plasma=plasma)
     turn_ON(RelPrec2)
-    HV_ON(plasma)
+    HV_ON()
     print_step(1, steps)
     countdown(t2, t2)
     turn_OFF(RelPrec2)
