@@ -1,3 +1,3 @@
 #!/bin/bash
 
-streamlit run ALD.py
+streamlit run app.py

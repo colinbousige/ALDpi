@@ -1,4 +1,6 @@
-# run with streamlit run ALD.py
+# This is the first version of the app, without the separation per page
+# I keep it for reference because it's working well
+# Run with: streamlit run ALD.py
 
 # # # # # # # # # # # # # # # # # # # # # # # # 
 # Import libraries
