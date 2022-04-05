@@ -68,9 +68,6 @@ if 'start_time' not in st.session_state:
 if 'cycle_time' not in st.session_state:
     st.session_state['cycle_time'] = ''
 
-# # # # # # # # # # # # # # # # # # # # # # # #
-# Define functions
-# # # # # # # # # # # # # # # # # # # # # # # #
 
 def turn_ON(relay):
     """
@@ -124,11 +121,17 @@ def initialize():
 
 
 def append_to_file(logfile="log.txt", text=""):
+    """
+    Function to easily append text to a logfile
+    """
     with open(logfile, 'a') as fd:
         fd.write(f'{text}\n')
 
 
 def write_to_log(logname, **kwargs):
+    """
+    Function to easily create and update a logfile
+    """
     toprint = {str(key): str(value) for key, value in kwargs.items()}
     append_to_file(logname, text='\n'.join('{:15}  {}'.format(
         key, value) for key, value in toprint.items()))

@@ -11,7 +11,7 @@ import time
 from datetime import datetime, timedelta
 from dateutil import parser
 import smbus
-import citobase as cb
+import ressources.citobase as cb
 
 # # # # # # # # # # # # # # # # # # # # # # # #
 # App configuration
@@ -113,7 +113,7 @@ remtime         = c2.empty()
 final_time_text = c2.empty()
 final_time      = c2.empty()
 
-with open("style.css") as f:
+with open("ressources/style.css") as f:
     st.markdown('<style>{}</style>'.format(f.read()), unsafe_allow_html=True)
 
 # # # # # # # # # # # # # # # # # # # # # # # #
