@@ -1,13 +1,10 @@
 # run with streamlit run app.py
 
-# # # # # # # # # # # # # # # # # # # # # # # # 
-# Import libraries
-# # # # # # # # # # # # # # # # # # # # # # # #
-
 import streamlit as st
 from ressources.multipage import MultiPage
 from ressources.setup import *
-from ressources import ALDpage, PEALDpage, CVDpage, PECVDpage, PulsedCVDpage, PulsedPECVDpage, PlasmaCleanpage, Purgepage
+from ressources import pageALD, pageCVD, pagePEALD, pagePECVD, pagePlasmaClean
+from ressources import pagePulsedPECVD, pagePulsedCVD, pagePurge
 
 app = MultiPage()
 
@@ -26,13 +23,13 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-app.add_page("ALD", ALDpage.app)
-app.add_page("PEALD", PEALDpage.app)
-app.add_page("CVD", CVDpage.app)
-app.add_page("Pulsed CVD", PulsedCVDpage.app)
-app.add_page("PECVD", PECVDpage.app)
-app.add_page("Pulsed PECVD", PulsedPECVDpage.app)
-app.add_page("Plasma cleaning", PlasmaCleanpage.app)
-app.add_page("Purge", Purgepage.app)
+app.add_page("ALD", pageALD.app)
+app.add_page("PEALD", pagePEALD.app)
+app.add_page("CVD", pageCVD.app)
+app.add_page("Pulsed CVD", pagePulsedCVD.app)
+app.add_page("PECVD", pagePECVD.app)
+app.add_page("Pulsed PECVD", pagePulsedPECVD.app)
+app.add_page("Plasma cleaning", pagePlasmaClean.app)
+app.add_page("Purge", pagePurge.app)
 
 app.run()
