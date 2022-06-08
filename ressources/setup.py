@@ -42,7 +42,7 @@ default = {"t1": 15, # in ms
            "p2": 40, # in s
            "N": 100, # in s
            "N2": 1, # in s
-           "plasma": 300.0} # in Watts
+           "plasma": 300} # in Watts
 t1 = default["t1"]
 p1 = default["p1"]
 t2 = default["t2"]
@@ -90,7 +90,9 @@ def set_plasma(plasma, logname=None):
     if citoctrl.open():
         citoctrl.set_power_setpoint_watts(plasma)  # set the rf power
         st.success("Connection with RF generator OK.")
-        st.info(f"RF power setpoint: {citoctrl.get_power_setpoint_watts()[1]}")
+        st.info(f"Setpoint: {plasma} W - Value: {citoctrl.get_power_setpoint_watts()[1]} W")
+        if logname is not None:
+            write_to_log(logname, plasma_active="Yes")
     else:
         st.error("Can't open connection to the RF generator.")
         if logname is not None:
@@ -102,14 +104,16 @@ def HV_ON():
     """
     Turn HV on
     """
-    citoctrl.set_rf_on()
+    if citoctrl.open():
+        citoctrl.set_rf_on()
 
 
 def HV_OFF():
     """
     Turn HV off
     """
-    citoctrl.set_rf_off()  # turn off the rf
+    if citoctrl.open():
+        citoctrl.set_rf_off()  # turn off the rf
 
 
 def initialize():
@@ -195,10 +199,11 @@ def countdown(t, tot):
     """
     remtottimetext.write("# Remaining Time:\n")
     tot = int(tot)
-    if t >= 1:
-        while t:
-            mins, secs = divmod(t, 60)
-            timer = '{:02d}:{:02d}'.format(mins, secs)
+    while t>0:
+        if t >= 1:
+            mins, rest = divmod(t, 60)
+            secs, mil = divmod(rest, 1)
+            timer = '{:02d}:{:02d}:{:03d}'.format(int(mins), int(secs), int(mil*1000))
             remtime.markdown(
                 f"<div><h2>Current step: <span class='highlight blue'>{timer}</h2></span></div>",
                 unsafe_allow_html=True)
@@ -212,8 +217,9 @@ def countdown(t, tot):
             time.sleep(1)
             t -= 1
             tot -= 1
-    else:
-        time.sleep(t)
+        else:
+            time.sleep(t)
+            t -= 1
 
 
 def print_step(n, steps):

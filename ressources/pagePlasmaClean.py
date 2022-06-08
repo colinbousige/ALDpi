@@ -1,6 +1,5 @@
 import streamlit as st
-import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from dateutil import parser
 from ressources.setup import *
 
@@ -14,19 +13,17 @@ def app():
     prec2 = st.sidebar.text_input("Precursor 2:", "H2 + Plasma", key="prec2")
     t2 = st.sidebar.number_input("Pulse "+prec2+" (s):", min_value=0,
                         step=1, value=500, key="t2")
-    plasma = st.sidebar.number_input("Plasma power (W):", min_value=0.,
-                        step=1., value=default["plasma"], key="plasma")
+    plasma = st.sidebar.number_input("Plasma power (W):", min_value=0,
+                        step=1, value=default["plasma"], key="plasma")
 
     print_tot_time(t2)
 
+    set_plasma(plasma)
 
     # # # # # # # # # # # # # # # # # # # # # # # #
     # STOP button
     # # # # # # # # # # # # # # # # # # # # # # # #
-    
-    test_plasma = st.sidebar.button('Test connection to RF generator')
-    if test_plasma:
-        set_plasma(plasma)
+
 
     layout = st.sidebar.columns([1, 1])
 

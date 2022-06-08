@@ -26,17 +26,15 @@ def app():
                         step=1, value=default["N2"], key="N2")
     N = layout[0].number_input("N Cycles:", min_value=0,
                             step=1, value=default["N"], key="N")
-    plasma = st.sidebar.number_input("Plasma power (W):", min_value=0.,
-                                step=1., value=default["plasma"], key="plasma")
+    plasma = st.sidebar.number_input("Plasma power (W):", min_value=0,
+                                step=1, value=default["plasma"], key="plasma")
 
     print_tot_time((t1+p1+(t2+p2)*N2)*N)
-    
+    set_plasma(plasma)
+
     # # # # # # # # # # # # # # # # # # # # # # # #
     # STOP button
     # # # # # # # # # # # # # # # # # # # # # # # #
-    test_plasma = st.sidebar.button('Test connection to RF generator')
-    if test_plasma:
-        set_plasma(plasma)
 
     layout = st.sidebar.columns([1, 1])
 

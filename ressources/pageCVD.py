@@ -12,8 +12,8 @@ def app():
     layout = st.sidebar.columns([1, 1])
 
     prec1 = st.sidebar.text_input("Precursor 1:", Prec1, key="prec1")
-    t1 = st.sidebar.number_input("Pulse "+prec1+" (s):", min_value=0,
-                        step=1, value=120, key="t1")
+    t1 = st.sidebar.number_input("Pulse "+prec1+" (s):", min_value=0.,
+                        step=1., value=120., key="t1")
     print_tot_time(t1)
     
     # # # # # # # # # # # # # # # # # # # # # # # #

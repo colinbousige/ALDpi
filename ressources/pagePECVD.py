@@ -12,20 +12,16 @@ def app():
     layout = st.sidebar.columns([1, 1])
 
     prec1 = st.sidebar.text_input("Precursor 1 + Plasma:", Prec1)
-    t1 = st.sidebar.number_input("Pulse "+prec1+" (s):", min_value=0,
-                        step=1, value=120, key="t1")
-    plasma = st.sidebar.number_input("Plasma power (W):", min_value=0.,
-                                    step=1., value=default["plasma"], key="plasma")
+    t1 = st.sidebar.number_input("Pulse "+prec1+" (s):", min_value=0.,
+                        step=1., value=120., key="t1")
+    plasma = st.sidebar.number_input("Plasma power (W):", min_value=0,
+                                    step=1, value=default["plasma"], key="plasma")
     print_tot_time(t1)
-    
+    set_plasma(plasma)
 
     # # # # # # # # # # # # # # # # # # # # # # # #
     # STOP button
     # # # # # # # # # # # # # # # # # # # # # # # #
-    
-    test_plasma = st.sidebar.button('Test connection to RF generator')
-    if test_plasma:
-        set_plasma(plasma)
 
     layout = st.sidebar.columns([1, 1])
 
