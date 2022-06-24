@@ -4,6 +4,9 @@ from datetime import datetime, timedelta
 from dateutil import parser
 import smbus
 import ressources.citobase as cb
+from tempfile import mkstemp
+from shutil import move, copymode
+import os
 
 st.set_page_config(
     page_title="ALD – CVD Process",
@@ -42,7 +45,11 @@ default = {"t1": 15, # in ms
            "p2": 40, # in s
            "N": 100, # in s
            "N2": 1, # in s
+<<<<<<< HEAD
            "plasma": 20} # in Watts
+=======
+           "plasma": 30} # in Watts
+>>>>>>> 261a26719eb8c4807efa99de0b88da10f3b71a4b
 t1 = default["t1"]
 p1 = default["p1"]
 t2 = default["t2"]
@@ -132,10 +139,38 @@ def append_to_file(logfile="log.txt", text=""):
         fd.write(f'{text}\n')
 
 
+def replacement(filepath, pattern, replacement):
+    """
+    Function to replace a pattern in a file
+    """
+    # Creating a temp file
+    fd, abspath = mkstemp()
+    with os.fdopen(fd, 'w') as file1:
+        with open(filepath, 'r') as file0:
+            for line in file0:
+                file1.write(line.replace(pattern, replacement))
+    copymode(filepath, abspath)
+    os.remove(filepath)
+    move(abspath, filepath)
+
+
+def update_cycle(logname, i, N):
+    """
+    Function to write the current cycle number in the logfile
+    """
+    if i == 0:
+        write_to_log(logname, cycles_done=f"{i+1}/{N}")
+    else:
+        replacement(logname,
+                    f"cycles_done      {i}/{N}",
+                    f"cycles_done      {i+1}/{N}")
+
+
 def write_to_log(logname, **kwargs):
     """
     Function to easily create and update a logfile
     """
+    os.makedirs(os.path.dirname(logname), exist_ok=True)
     toprint = {str(key): str(value) for key, value in kwargs.items()}
     append_to_file(logname, text='\n'.join('{:15}  {}'.format(
         key, value) for key, value in toprint.items()))
@@ -285,6 +320,7 @@ def ALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
             print_step(4, steps)
             countdown(p2, tot)
             tot = tot-p2
+        update_cycle(st.session_state['logname'], i, N)
     end_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
     st.balloons()
     time.sleep(2)
@@ -351,6 +387,7 @@ def PulsedCVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
         print_step(2, steps)
         countdown(p1, tot)
         tot = tot-p1
+        update_cycle(st.session_state['logname'], i, N)
     end_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
     st.balloons()
     time.sleep(2)
@@ -441,6 +478,7 @@ def PulsedPECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
             print_step(4, steps)
             countdown(p2, tot)
             tot = tot-p2
+        update_cycle(st.session_state['logname'], i, N)
     end_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
     st.balloons()
     time.sleep(2)
@@ -530,6 +568,7 @@ def PEALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
             print_step(4, steps)
             countdown(p2, tot)
             tot = tot-p2
+        update_cycle(st.session_state['logname'], i, N)
     end_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
     st.balloons()
     time.sleep(2)
