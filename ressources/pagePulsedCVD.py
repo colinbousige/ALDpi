@@ -32,11 +32,8 @@ def app():
     if STOP:
         end_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
         duration = f"{parser.parse(end_time)-parser.parse(st.session_state['start_time'])}"
-        duration_s = sum(int(x) * 60 ** i for i, x in enumerate(reversed(duration.split(':'))))
-        cycles_done = int(duration_s / st.session_state['cycle_time'])+1
         write_to_log(st.session_state['logname'], end=end_time, 
                     duration=duration,
-                    cycles_done=cycles_done,
                     ending = "forced")
         end_recipe()
 
