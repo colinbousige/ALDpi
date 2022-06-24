@@ -42,7 +42,7 @@ default = {"t1": 15, # in ms
            "p2": 40, # in s
            "N": 100, # in s
            "N2": 1, # in s
-           "plasma": 300} # in Watts
+           "plasma": 20} # in Watts
 t1 = default["t1"]
 p1 = default["p1"]
 t2 = default["t2"]

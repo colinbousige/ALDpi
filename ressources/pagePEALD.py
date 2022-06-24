@@ -26,7 +26,7 @@ def app():
                         step=1, value=default["N2"], key="N2")
     N = layout[0].number_input("N Cycles:", min_value=0,
                             step=1, value=default["N"], key="N")
-    plasma = st.sidebar.number_input("Plasma power (W):", min_value=0,
+    plasma = st.sidebar.number_input("Plasma power (W):", min_value=0, max_value=600,
                                 step=1, value=default["plasma"], key="plasma")
 
     print_tot_time((t1+p1+(t2+p2)*N2)*N)

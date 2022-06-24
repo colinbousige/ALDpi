@@ -14,7 +14,7 @@ def app():
     prec1 = st.sidebar.text_input("Precursor 1 + Plasma:", Prec1)
     t1 = st.sidebar.number_input("Pulse "+prec1+" (s):", min_value=0.,
                         step=1., value=120., key="t1")
-    plasma = st.sidebar.number_input("Plasma power (W):", min_value=0,
+    plasma = st.sidebar.number_input("Plasma power (W):", min_value=0, max_value=600,
                                     step=1, value=default["plasma"], key="plasma")
     print_tot_time(t1)
     set_plasma(plasma)

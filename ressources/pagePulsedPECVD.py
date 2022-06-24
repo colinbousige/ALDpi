@@ -25,7 +25,7 @@ def app():
                         step=1, value=default["N2"], key="N2")
     N = layout[1].number_input("N Cycles:", min_value=0,
                             step=1, value=default["N"], key="N")
-    plasma = layout[0].number_input("Plasma power (W):", min_value=0,
+    plasma = layout[0].number_input("Plasma power (W):", min_value=0, max_value=600,
                                     step=1, value=default["plasma"], key="plasma")
 
 

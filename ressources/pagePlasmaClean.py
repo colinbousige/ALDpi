@@ -13,8 +13,10 @@ def app():
     prec2 = st.sidebar.text_input("Precursor 2:", "H2 + Plasma", key="prec2")
     t2 = st.sidebar.number_input("Pulse "+prec2+" (s):", min_value=0,
                         step=1, value=500, key="t2")
-    plasma = st.sidebar.number_input("Plasma power (W):", min_value=0,
-                        step=1, value=default["plasma"], key="plasma")
+    plasma = st.sidebar.number_input("Plasma power (W):", min_value=0, 
+                        max_value=600, step=1, 
+                        value=default["plasma"],
+                        key="plasma")
 
     print_tot_time(t2)
 
