@@ -40,9 +40,9 @@ Prec2 = "H2"
 
 # Default recipe values
 default = {"t1": 15, # in ms
-           "p1": 40, # in s
-           "t2": 10, # in s
-           "p2": 40, # in s
+           "p1": 40., # in s
+           "t2": 10., # in s
+           "p2": 40., # in s
            "N": 100, # in s
            "N2": 1, # in s
            "plasma": 30} # in Watts

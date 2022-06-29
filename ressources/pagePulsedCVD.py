@@ -15,8 +15,8 @@ def app():
     t1 = st.sidebar.number_input("Pulse "+prec1+" (ms):", min_value=0,
                         step=1, value=default["t1"], key="t1")
     t1 = t1/1000
-    p1 = st.sidebar.number_input("Purge "+prec1+" (s):", min_value=0,
-                        step=1, value=default["p1"], key="p1")
+    p1 = st.sidebar.number_input("Purge "+prec1+" (s):", min_value=0.,
+                        step=1., value=default["p1"], key="p1")
     N = st.sidebar.number_input("N Cycles:", min_value=0,
                         step=1, value=default["N"], key="N")
 

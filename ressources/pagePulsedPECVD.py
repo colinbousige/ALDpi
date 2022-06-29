@@ -15,12 +15,12 @@ def app():
     t1 = layout[0].number_input("Pulse "+prec1+" (ms):", min_value=0,
                         step=1, value=default["t1"], key="t1")
     t1 = t1/1000
-    p1 = layout[0].number_input("Purge "+prec1+" (s):", min_value=0,
-                        step=1, value=default["p1"], key="p1")
-    t2 = layout[1].number_input("Pulse Plasma (s):", min_value=0,
-                        step=1, value=default["t2"], key="t2")
-    p2 = layout[1].number_input("Purge Plasma (s):", min_value=0,
-                        step=1, value=default["p2"], key="p2")
+    p1 = layout[0].number_input("Purge "+prec1+" (s):", min_value=0.,
+                        step=1., value=default["p1"], key="p1")
+    t2 = layout[1].number_input("Pulse Plasma (s):", min_value=0.,
+                        step=1., value=default["t2"], key="t2")
+    p2 = layout[1].number_input("Purge Plasma (s):", min_value=0.,
+                        step=1., value=default["p2"], key="p2")
     N2 = layout[1].number_input("N repeat Plasma:", min_value=0,
                         step=1, value=default["N2"], key="N2")
     N = layout[1].number_input("N Cycles:", min_value=0,

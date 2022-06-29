@@ -15,13 +15,13 @@ def app():
     t1 = layout[0].number_input("Pulse "+prec1+" (ms):", min_value=0,
                             step=1, value=default["t1"], key="t1")
     t1 = t1/1000
-    p1 = layout[0].number_input("Purge "+prec1+" (s):", min_value=0,
-                            step=1, value=default["p1"], key="p1")
+    p1 = layout[0].number_input("Purge "+prec1+" (s):", min_value=0.,
+                            step=1., value=default["p1"], key="p1")
     prec2 = layout[1].text_input("Precursor 2:", Prec2, key="prec2")
-    t2 = layout[1].number_input("Pulse "+prec2+" (s):", min_value=0,
-                        step=1, value=default["t2"], key="t2")
-    p2 = layout[1].number_input("Purge "+prec2+" (s):", min_value=0,
-                        step=1, value=default["p2"], key="p2")
+    t2 = layout[1].number_input("Pulse "+prec2+" (s):", min_value=0.,
+                        step=1., value=default["t2"], key="t2")
+    p2 = layout[1].number_input("Purge "+prec2+" (s):", min_value=0.,
+                        step=1., value=default["p2"], key="p2")
     N2 = layout[1].number_input("N repeat "+prec2+":", min_value=0,
                         step=1, value=default["N2"], key="N2")
     N = layout[0].number_input("N Cycles:", min_value=0,
