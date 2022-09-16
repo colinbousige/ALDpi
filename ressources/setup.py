@@ -61,11 +61,11 @@ RelPrec2 = 2
 
 # IP Address of the Cito Plus RF generator, connected by Ethernet
 cito_address = "169.254.1.1"
-citoctrl = cb.CitoBase(host_mode=0, host_addr=cito_address) # 0 for Ethernet
+citoctrl = cb.CitoBase(host_mode = 0, host_addr = cito_address) # 0 for Ethernet
 
 # Address of the MKS Controller, connected by RS232 to USB cable
 mks_address = "COM3"
-mksctrl = mks.MKS(host_addr=mks_address)
+mksctrl = mks.MKS(host_addr = mks_address)
 
 # For writing into the log at the end of the recipe, 
 # whether it's a normal or forced ending
@@ -106,6 +106,16 @@ def set_plasma(plasma, logname=None):
         if logname is not None:
             write_to_log(logname, plasma_active="No")
         return(False)
+
+
+def set_mks():
+    """
+    Open the connection to the MKS controller
+    """
+    if mksctrl.open():
+        st.success("Connection with MKS controller OK.")
+    else:
+        st.error("Can't open connection to the MKS controller.")
 
 
 def HV_ON():
@@ -520,7 +530,7 @@ def Plasma_clean(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
 
 
 def PEALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1, 
-          recipe="PEALD", prec1="TEB", prec2="H2"):
+          recipe="PEALD", prec1="TEB", prec2="H2", cutAr=True):
     """
     Definition of PEALD recipe
     """
@@ -560,12 +570,16 @@ def PEALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
                                   str(j+1)+" / "+str(N2)+"</h2></div>",
                                   unsafe_allow_html=True)
             turn_ON(RelPrec2)
+            if cutAr:
+                mksctrl.off_all()
             HV_ON()
             print_step(3, steps)
             countdown(t2, tot)
             tot = tot-t2
             turn_OFF(RelPrec2)
             HV_OFF()
+            if cutAr:
+                mksctrl.on_all()
             print_step(4, steps)
             countdown(p2, tot)
             tot = tot-p2

@@ -26,11 +26,14 @@ def app():
                         step=1, value=default["N2"], key="N2")
     N = layout[0].number_input("N Cycles:", min_value=0,
                             step=1, value=default["N"], key="N")
+    cutAr = st.sidebar.checkbox("Cut Ar flow during plasma?", value=False, key="cutAr")
     plasma = st.sidebar.number_input("Plasma power (W):", min_value=0, max_value=600,
                                 step=1, value=default["plasma"], key="plasma")
 
     print_tot_time((t1+p1+(t2+p2)*N2)*N)
     set_plasma(plasma)
+    if cutAr:
+        set_mks()
 
     # # # # # # # # # # # # # # # # # # # # # # # #
     # STOP button
@@ -53,5 +56,5 @@ def app():
     GObutton = layout[1].button('GO')
     if GObutton:
         PEALD(t1=t1, p1=p1, t2=t2, p2=p2, N=N, N2=N2,
-              plasma=plasma, prec1=prec1, prec2=prec2)
+              plasma=plasma, prec1=prec1, prec2=prec2, cutAr=cutAr)
 
