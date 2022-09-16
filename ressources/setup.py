@@ -64,8 +64,8 @@ cito_address = "169.254.1.1"
 citoctrl = cb.CitoBase(host_mode = 0, host_addr = cito_address) # 0 for Ethernet
 
 # Address of the MKS Controller, connected by RS232 to USB cable
-mks_address = "COM3"
-mksctrl = mks.MKS(host_addr = mks_address)
+mks_address = "/dev/ttyUSB0"
+mksctrl = mks.MKS(host_port = mks_address)
 
 # For writing into the log at the end of the recipe, 
 # whether it's a normal or forced ending
@@ -196,6 +196,8 @@ def end_recipe():
     if citoctrl.open():
         HV_OFF()
         citoctrl.close()
+    if mksctrl.open():
+        mksctrl.close()
     st.experimental_rerun()
 
 
