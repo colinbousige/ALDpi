@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from dateutil import parser
 import smbus
 import ressources.citobase as cb
+import ressources.mksserial as mks
 from tempfile import mkstemp
 from shutil import move, copymode
 import os
@@ -61,6 +62,10 @@ RelPrec2 = 2
 # IP Address of the Cito Plus RF generator, connected by Ethernet
 cito_address = "169.254.1.1"
 citoctrl = cb.CitoBase(host_mode=0, host_addr=cito_address) # 0 for Ethernet
+
+# Address of the MKS Controller, connected by RS232 to USB cable
+mks_address = "COM3"
+mksctrl = mks.MKS(host_addr=mks_address)
 
 # For writing into the log at the end of the recipe, 
 # whether it's a normal or forced ending
