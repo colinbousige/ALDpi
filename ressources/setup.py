@@ -288,7 +288,7 @@ def print_step(n, steps):
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
 def ALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1, 
-        recipe="ALD", prec1="TEB", prec2="H2"):
+        recipe="ALD", prec1="TEB", prec2="H2", cutAr=True):
     """
     Definition of ALD recipe
     """
@@ -305,6 +305,9 @@ def ALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
              f"Pulse {prec2} – {t2} s",
              f"Purge {prec2} – {p2} s"
             ]
+    if cutAr:
+        mksctrl.on_channel(1)
+        mksctrl.on_all()
     for i in range(N):
         remcycletext.write("# Cycle number:\n")
         remcycle.markdown("<div><h2><span class='highlight green'>" +
@@ -325,11 +328,15 @@ def ALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
                                     str(i+1)+" / "+str(N)+"</span> – " +
                                     str(j+1)+" / "+str(N2)+"</h2></div>",
                                     unsafe_allow_html=True)
+            if cutAr:
+                mksctrl.off_all()
             turn_ON(RelPrec2)
             print_step(3, steps)
             countdown(t2, tot)
             tot = tot-t2
             turn_OFF(RelPrec2)
+            if cutAr:
+                mksctrl.on_all()
             print_step(4, steps)
             countdown(p2, tot)
             tot = tot-p2
@@ -551,6 +558,9 @@ def PEALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
              f"Pulse {prec2} + Plasma – {t2} s",
              f"Purge {prec2} – {p2} s"
              ]
+    if cutAr:
+        mksctrl.on_channel(1)
+        mksctrl.on_all()
     for i in range(N):
         remcycletext.write("# Cycle number:\n")
         remcycle.markdown("<div><h2><span class='highlight green'>" +

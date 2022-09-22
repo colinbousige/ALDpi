@@ -26,7 +26,7 @@ def app():
                         step=1, value=default["N2"], key="N2")
     N = layout[0].number_input("N Cycles:", min_value=0,
                             step=1, value=default["N"], key="N")
-    cutAr = st.sidebar.checkbox("Cut Ar flow during plasma?", value=False, key="cutAr")
+    cutAr = st.sidebar.checkbox("Cut Ar flow during plasma pulse?", value=True, key="cutAr")
     plasma = st.sidebar.number_input("Plasma power (W):", min_value=0, max_value=600,
                                 step=1, value=default["plasma"], key="plasma")
 
