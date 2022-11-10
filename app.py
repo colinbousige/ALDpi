@@ -9,17 +9,13 @@ from ressources import pagePulsedPECVD, pagePulsedCVD, pagePurge
 app = MultiPage()
 
 st.markdown(
-    """
+    f'''
         <style>
-        [data-testid="stSidebar"][aria-expanded="true"] > div:first-child {
-            width: 400px;
-        }
-        [data-testid="stSidebar"][aria-expanded="false"] > div:first-child {
-            width: 400px;
-            margin-left: -400px;
-        }
+            .sidebar .sidebar-content {{
+                width: 400px;
+            }}
         </style>
-        """,
+    ''',
     unsafe_allow_html=True
 )
 

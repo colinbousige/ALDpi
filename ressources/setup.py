@@ -66,10 +66,6 @@ relays = {
 cito_address = "169.254.1.1"
 citoctrl = cb.CitoBase(host_mode = 0, host_addr = cito_address) # 0 for Ethernet
 
-# Address of the MKS Controller, connected by RS232 to USB cable
-# mks_address = "/dev/ttyUSB0"
-# mksctrl = mks.MKS(host_port = mks_address)
-
 # For writing into the log at the end of the recipe, 
 # whether it's a normal or forced ending
 if 'logname' not in st.session_state:
@@ -88,9 +84,12 @@ def turn_ON(gas):
     rel = relays[gas][1]
     if gas == Prec1:
         bus.write_byte_data(DEVICE_ADDR, rel, 0xFF)
-    else:
-        bus.write_byte_data(DEVICE_ADDR, rel[0], 0xFF) #open direct
-        bus.write_byte_data(DEVICE_ADDR, rel[1], 0x00) #close pump
+    if gas == Prec2:
+        bus.write_byte_data(DEVICE_ADDR, rel[0], 0xFF) # NO -> closed
+        bus.write_byte_data(DEVICE_ADDR, rel[1], 0xFF) # NC -> open
+    if gas == Carrier:
+        bus.write_byte_data(DEVICE_ADDR, rel[0], 0x00) # NO -> open (normal state)
+        bus.write_byte_data(DEVICE_ADDR, rel[1], 0x00) # NC -> closed (normal state)
 
 
 def turn_OFF(gas):
@@ -101,9 +100,12 @@ def turn_OFF(gas):
     rel = relays[gas][1]
     if gas == Prec1:
         bus.write_byte_data(DEVICE_ADDR, rel, 0x00)
-    else:
-        bus.write_byte_data(DEVICE_ADDR, rel[1], 0xFF) #open direct
-        bus.write_byte_data(DEVICE_ADDR, rel[0], 0x00) #close pump
+    if gas == Prec2:
+        bus.write_byte_data(DEVICE_ADDR, rel[0], 0x00) # NO -> open (normal state)
+        bus.write_byte_data(DEVICE_ADDR, rel[1], 0x00) # NC -> closed (normal state)
+    if gas == Carrier:
+        bus.write_byte_data(DEVICE_ADDR, rel[0], 0xFF) # NO -> closed
+        bus.write_byte_data(DEVICE_ADDR, rel[1], 0xFF) # NC -> open
 
 
 def set_plasma(plasma, logname=None):
@@ -155,6 +157,7 @@ def initialize():
     """
     turn_OFF(Prec1)
     turn_OFF(Prec2)
+    turn_ON(Carrier)
 
 
 def append_to_file(logfile="log.txt", text=""):
@@ -208,11 +211,10 @@ def end_recipe():
     """
     turn_OFF(Prec1)
     turn_OFF(Prec2)
+    turn_ON(Carrier)
     if citoctrl.open():
         HV_OFF()
         citoctrl.close()
-    if mksctrl.open():
-        mksctrl.close()
     st.experimental_rerun()
 
 

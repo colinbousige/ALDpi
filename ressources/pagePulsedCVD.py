@@ -31,10 +31,11 @@ def app():
     STOP = layout[0].button("STOP PROCESS")
     if STOP:
         end_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
-        duration = f"{parser.parse(end_time)-parser.parse(st.session_state['start_time'])}"
-        write_to_log(st.session_state['logname'], end=end_time, 
-                    duration=duration,
-                    ending = "forced")
+        if len(st.session_state['logname']) > 0:
+            duration = f"{parser.parse(end_time)-parser.parse(st.session_state['start_time'])}"
+            write_to_log(st.session_state['logname'], end=end_time,
+                         duration=duration,
+                         ending="forced")
         end_recipe()
 
     # # # # # # # # # # # # # # # # # # # # # # # #
