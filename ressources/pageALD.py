@@ -26,13 +26,11 @@ def app():
                         step=1, value=default["N2"], key="N2")
     N = layout[0].number_input("N Cycles:", min_value=0,
                             step=1, value=default["N"], key="N")
-    cutAr = st.sidebar.checkbox("Cut Ar flow during H2 pulse?", value=True, key="cutAr")
+    cutCarrier = st.sidebar.checkbox(
+        f"Cut carrier flow during {Prec2} pulse?", value=True, key="cutCarrier")
 
     print_tot_time((t1+p1+(t2+p2)*N2)*N)
 
-
-    if cutAr:
-        set_mks()
     # # # # # # # # # # # # # # # # # # # # # # # #
     # STOP button
     # # # # # # # # # # # # # # # # # # # # # # # #
@@ -54,5 +52,5 @@ def app():
     GObutton = layout[1].button('GO')
     if GObutton:
         ALD(t1=t1, p1=p1, t2=t2, p2=p2, N=N, N2=N2, 
-            prec1=prec1, prec2=prec2, cutAr=cutAr)
+            prec1=prec1, prec2=prec2, cutCarrier=cutCarrier)
 

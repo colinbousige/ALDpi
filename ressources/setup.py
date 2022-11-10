@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 from dateutil import parser
 import smbus
 import ressources.citobase as cb
-import ressources.mksserial as mks
 from tempfile import mkstemp
 from shutil import move, copymode
 import os
@@ -32,12 +31,12 @@ st.set_page_config(
 
 # Relays from the hat are commanded with I2C
 DEVICE_BUS = 1
-DEVICE_ADDR = 0x10
 bus = smbus.SMBus(DEVICE_BUS)
 
 # Default precursor names
 Prec1 = "TEB"
 Prec2 = "H2"
+Carrier = "Ar"
 
 # Default recipe values
 default = {"t1": 15, # in ms
@@ -56,16 +55,20 @@ N2 = default["N2"]
 plasma = default["plasma"]
 
 # Relays attribution
-RelPrec1 = 1
-RelPrec2 = 2
+# Hat adress, relay number
+relays = {
+    Prec1: (0x10, 1),
+    Carrier: (0x10, [2, 3]),
+    Prec2: (0x11, [1, 2])
+}
 
 # IP Address of the Cito Plus RF generator, connected by Ethernet
 cito_address = "169.254.1.1"
 citoctrl = cb.CitoBase(host_mode = 0, host_addr = cito_address) # 0 for Ethernet
 
 # Address of the MKS Controller, connected by RS232 to USB cable
-mks_address = "/dev/ttyUSB0"
-mksctrl = mks.MKS(host_port = mks_address)
+# mks_address = "/dev/ttyUSB0"
+# mksctrl = mks.MKS(host_port = mks_address)
 
 # For writing into the log at the end of the recipe, 
 # whether it's a normal or forced ending
@@ -77,18 +80,30 @@ if 'cycle_time' not in st.session_state:
     st.session_state['cycle_time'] = ''
 
 
-def turn_ON(relay):
+def turn_ON(gas):
     """
     Open relay from the hat with I2C command
     """
-    bus.write_byte_data(DEVICE_ADDR, relay, 0xFF)
+    DEVICE_ADDR = relays[gas][0]
+    rel = relays[gas][1]
+    if gas == Prec1:
+        bus.write_byte_data(DEVICE_ADDR, rel, 0xFF)
+    else:
+        bus.write_byte_data(DEVICE_ADDR, rel[0], 0xFF) #open direct
+        bus.write_byte_data(DEVICE_ADDR, rel[1], 0x00) #close pump
 
 
-def turn_OFF(relay):
+def turn_OFF(gas):
     """
     Close relay from the hat with I2C command
     """
-    bus.write_byte_data(DEVICE_ADDR, relay, 0x00)
+    DEVICE_ADDR = relays[gas][0]
+    rel = relays[gas][1]
+    if gas == Prec1:
+        bus.write_byte_data(DEVICE_ADDR, rel, 0x00)
+    else:
+        bus.write_byte_data(DEVICE_ADDR, rel[1], 0xFF) #open direct
+        bus.write_byte_data(DEVICE_ADDR, rel[0], 0x00) #close pump
 
 
 def set_plasma(plasma, logname=None):
@@ -108,14 +123,14 @@ def set_plasma(plasma, logname=None):
         return(False)
 
 
-def set_mks():
-    """
-    Open the connection to the MKS controller
-    """
-    if mksctrl.open():
-        st.success("Connection with MKS controller OK.")
-    else:
-        st.error("Can't open connection to the MKS controller.")
+# def set_mks():
+#     """
+#     Open the connection to the MKS controller
+#     """
+#     if mksctrl.open():
+#         st.success("Connection with MKS controller OK.")
+#     else:
+#         st.error("Can't open connection to the MKS controller.")
 
 
 def HV_ON():
@@ -138,8 +153,8 @@ def initialize():
     """
     Make sure the relays are closed
     """
-    turn_OFF(RelPrec1)
-    turn_OFF(RelPrec2)
+    turn_OFF(Prec1)
+    turn_OFF(Prec2)
 
 
 def append_to_file(logfile="log.txt", text=""):
@@ -191,8 +206,8 @@ def end_recipe():
     """
     Ending procedure for recipes
     """
-    turn_OFF(RelPrec1)
-    turn_OFF(RelPrec2)
+    turn_OFF(Prec1)
+    turn_OFF(Prec2)
     if citoctrl.open():
         HV_OFF()
         citoctrl.close()
@@ -288,7 +303,7 @@ def print_step(n, steps):
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
 def ALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1, 
-        recipe="ALD", prec1="TEB", prec2="H2", cutAr=True):
+        recipe="ALD", prec1="TEB", Carrier="Ar", prec2="H2", cutCarrier=True):
     """
     Definition of ALD recipe
     """
@@ -305,20 +320,17 @@ def ALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
              f"Pulse {prec2} – {t2} s",
              f"Purge {prec2} – {p2} s"
             ]
-    if cutAr:
-        mksctrl.on_channel(1)
-        mksctrl.on_all()
     for i in range(N):
         remcycletext.write("# Cycle number:\n")
         remcycle.markdown("<div><h2><span class='highlight green'>" +
                             str(i+1)+" / "+str(N)+"</h2></span></div>",
                             unsafe_allow_html=True)
         remcyclebar.progress(int((i+1)/N*100))
-        turn_ON(RelPrec1)
+        turn_ON(Prec1)
         print_step(1, steps)
         countdown(t1, tot)
         tot = tot-t1
-        turn_OFF(RelPrec1)
+        turn_OFF(Prec1)
         print_step(2, steps)
         countdown(p1, tot)
         tot = tot-p1
@@ -328,15 +340,15 @@ def ALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
                                     str(i+1)+" / "+str(N)+"</span> – " +
                                     str(j+1)+" / "+str(N2)+"</h2></div>",
                                     unsafe_allow_html=True)
-            if cutAr:
-                mksctrl.off_all()
-            turn_ON(RelPrec2)
+            if cutCarrier:
+                turn_OFF(Carrier)
+            turn_ON(Prec2)
             print_step(3, steps)
             countdown(t2, tot)
             tot = tot-t2
-            turn_OFF(RelPrec2)
-            if cutAr:
-                mksctrl.on_all()
+            turn_OFF(Prec2)
+            if cutCarrier:
+                turn_ON(Carrier)
             print_step(4, steps)
             countdown(p2, tot)
             tot = tot-p2
@@ -351,7 +363,7 @@ def ALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
 
 
 def Purge(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1, 
-          recipe="Purge", prec1="TEB", prec2="H2"):
+          recipe="Purge", prec1="TEB", Carrier="Ar", prec2="H2"):
     """
     Definition of a Precursor 1 Purge
     """
@@ -364,10 +376,10 @@ def Purge(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
     st.session_state['cycle_time'] = tot
     write_to_log(st.session_state['logname'], recipe=recipe, start=start_time,
                  t1=t1)
-    turn_ON(RelPrec1)
+    turn_ON(Prec1)
     print_step(1, steps)
     countdown(t1, t1)
-    turn_OFF(RelPrec1)
+    turn_OFF(Prec1)
     end_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
     st.balloons()
     time.sleep(2)
@@ -378,7 +390,7 @@ def Purge(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
 
 
 def PulsedCVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1, 
-              recipe="Pulsed CVD", prec1="TEB", prec2="H2"):
+              recipe="Pulsed CVD", prec1="TEB", Carrier="Ar", prec2="H2"):
     """
     Definition of pulsed CVD recipe
     """
@@ -399,11 +411,11 @@ def PulsedCVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
                             str(i+1)+" / "+str(N)+"</h2></span></div>",
                             unsafe_allow_html=True)
         remcyclebar.progress(int((i+1)/N*100))
-        turn_ON(RelPrec1)
+        turn_ON(Prec1)
         print_step(1, steps)
         countdown(t1, tot)
         tot = tot-t1
-        turn_OFF(RelPrec1)
+        turn_OFF(Prec1)
         print_step(2, steps)
         countdown(p1, tot)
         tot = tot-p1
@@ -418,7 +430,7 @@ def PulsedCVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
 
 
 def PECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1, 
-          recipe="PECVD", prec1="TEB", prec2="H2"):
+          recipe="PECVD", prec1="TEB", Carrier="Ar", prec2="H2"):
     """
     Definition of PECVD recipe
     """
@@ -434,11 +446,11 @@ def PECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
     set_plasma(plasma, st.session_state['logname'])
     steps = [f"Pulse {prec1} – {t1} s"]
     remcycletext.write(f"# Pulsing {prec1}...\n")
-    turn_ON(RelPrec1)
+    turn_ON(Prec1)
     HV_ON()
     print_step(1, steps)
     countdown(t1, tot)
-    turn_OFF(RelPrec1)
+    turn_OFF(Prec1)
     HV_OFF()
     end_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
     st.balloons()
@@ -450,7 +462,7 @@ def PECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
 
 
 def PulsedPECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1, 
-                recipe="Pulsed PECVD", prec1="TEB", prec2="H2"):
+                recipe="Pulsed PECVD", prec1="TEB", Carrier="Ar", prec2="H2"):
     """
     Definition of pulsed PECVD recipe
     """
@@ -475,11 +487,11 @@ def PulsedPECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
                           str(i+1)+" / "+str(N)+"</h2></span></div>",
                           unsafe_allow_html=True)
         remcyclebar.progress(int((i+1)/N*100))
-        turn_ON(RelPrec1)
+        turn_ON(Prec1)
         print_step(1, steps)
         countdown(t1, tot)
         tot = tot-t1
-        turn_OFF(RelPrec1)
+        turn_OFF(Prec1)
         print_step(2, steps)
         countdown(p1, tot)
         tot = tot-p1
@@ -493,7 +505,7 @@ def PulsedPECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
             print_step(3, steps)
             countdown(t2, tot)
             tot = tot-t2
-            turn_OFF(RelPrec2)
+            turn_OFF(Prec2)
             HV_OFF()
             print_step(4, steps)
             countdown(p2, tot)
@@ -509,7 +521,7 @@ def PulsedPECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
 
 
 def Plasma_clean(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1, 
-                 recipe="Plasma cleaning", prec1="TEB", prec2="H2"):
+                 recipe="Plasma cleaning", prec1="TEB", Carrier="Ar", prec2="H2"):
     """
     Definition of a Plasma cleaning
     """
@@ -523,11 +535,11 @@ def Plasma_clean(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
     write_to_log(st.session_state['logname'], recipe=recipe, start=start_time,
                  t2=t2, plasma=plasma)
     set_plasma(plasma, st.session_state['logname'])
-    turn_ON(RelPrec2)
+    turn_ON(Prec2)
     HV_ON()
     print_step(1, steps)
     countdown(t2, t2)
-    turn_OFF(RelPrec2)
+    turn_OFF(Prec2)
     HV_OFF()
     end_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
     st.balloons()
@@ -539,7 +551,7 @@ def Plasma_clean(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
 
 
 def PEALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1, 
-          recipe="PEALD", prec1="TEB", prec2="H2", cutAr=True):
+          recipe="PEALD", prec1="TEB", Carrier="Ar", prec2="H2", cutCarrier=True):
     """
     Definition of PEALD recipe
     """
@@ -558,20 +570,17 @@ def PEALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
              f"Pulse {prec2} + Plasma – {t2} s",
              f"Purge {prec2} – {p2} s"
              ]
-    if cutAr:
-        mksctrl.on_channel(1)
-        mksctrl.on_all()
     for i in range(N):
         remcycletext.write("# Cycle number:\n")
         remcycle.markdown("<div><h2><span class='highlight green'>" +
                           str(i+1)+" / "+str(N)+"</h2></span></div>",
                           unsafe_allow_html=True)
         remcyclebar.progress(int((i+1)/N*100))
-        turn_ON(RelPrec1)
+        turn_ON(Prec1)
         print_step(1, steps)
         countdown(t1, tot)
         tot = tot-t1
-        turn_OFF(RelPrec1)
+        turn_OFF(Prec1)
         print_step(2, steps)
         countdown(p1, tot)
         tot = tot-p1
@@ -581,17 +590,17 @@ def PEALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
                                   str(i+1)+" / "+str(N)+"</span> – " +
                                   str(j+1)+" / "+str(N2)+"</h2></div>",
                                   unsafe_allow_html=True)
-            turn_ON(RelPrec2)
-            if cutAr:
-                mksctrl.off_all()
+            turn_ON(Prec2)
+            if cutCarrier:
+                turn_OFF(Carrier)
             HV_ON()
             print_step(3, steps)
             countdown(t2, tot)
             tot = tot-t2
-            turn_OFF(RelPrec2)
+            turn_OFF(Prec2)
             HV_OFF()
-            if cutAr:
-                mksctrl.on_all()
+            if cutCarrier:
+                turn_ON(Carrier)
             print_step(4, steps)
             countdown(p2, tot)
             tot = tot-p2
@@ -605,7 +614,7 @@ def PEALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
     end_recipe()
 
 
-def CVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1, recipe="CVD", prec1="TEB", prec2="H2"):
+def CVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1, recipe="CVD", prec1="TEB", Carrier="Ar", prec2="H2"):
     """
     Definition of CVD recipe
     """
@@ -619,10 +628,10 @@ def CVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1, recipe="CVD", prec
                  t1=t1, time_per_cycle=timedelta(seconds=st.session_state['cycle_time']))
     steps = [f"Pulse {prec1} – {t1} s"]
     remcycletext.write(f"# Pulsing {prec1}...\n")
-    turn_ON(RelPrec1)
+    turn_ON(Prec1)
     print_step(1, steps)
     countdown(t1, tot)
-    turn_OFF(RelPrec1)
+    turn_OFF(Prec1)
     end_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
     st.balloons()
     time.sleep(2)
