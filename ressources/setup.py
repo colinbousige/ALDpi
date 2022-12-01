@@ -58,8 +58,8 @@ plasma = default["plasma"]
 # Hat adress, relay number
 relays = {
     Prec1: (0x10, 1),
-    Carrier: (0x10, [2, 3]),
-    Prec2: (0x11, [1, 2])
+    Prec2: (0x10, 2),
+    Carrier: (0x10, 3)
 }
 
 # IP Address of the Cito Plus RF generator, connected by Ethernet
@@ -80,32 +80,22 @@ def turn_ON(gas):
     """
     Open relay from the hat with I2C command
     """
-    DEVICE_ADDR = relays[gas][0]
-    rel = relays[gas][1]
-    if gas == Prec1:
+    DEVICE_ADDR, rel = relays[gas]
+    if gas != Carrier:
         bus.write_byte_data(DEVICE_ADDR, rel, 0xFF)
-    if gas == Prec2:
-        bus.write_byte_data(DEVICE_ADDR, rel[0], 0xFF) # NO -> closed
-        bus.write_byte_data(DEVICE_ADDR, rel[1], 0xFF) # NC -> open
-    if gas == Carrier:
-        bus.write_byte_data(DEVICE_ADDR, rel[0], 0x00) # NO -> open (normal state)
-        bus.write_byte_data(DEVICE_ADDR, rel[1], 0x00) # NC -> closed (normal state)
+    else:
+        bus.write_byte_data(DEVICE_ADDR, rel, 0x00) # Carrier Normally Open
 
 
 def turn_OFF(gas):
     """
     Close relay from the hat with I2C command
     """
-    DEVICE_ADDR = relays[gas][0]
-    rel = relays[gas][1]
-    if gas == Prec1:
+    DEVICE_ADDR, rel = relays[gas]
+    if gas != Carrier:
         bus.write_byte_data(DEVICE_ADDR, rel, 0x00)
-    if gas == Prec2:
-        bus.write_byte_data(DEVICE_ADDR, rel[0], 0x00) # NO -> open (normal state)
-        bus.write_byte_data(DEVICE_ADDR, rel[1], 0x00) # NC -> closed (normal state)
-    if gas == Carrier:
-        bus.write_byte_data(DEVICE_ADDR, rel[0], 0xFF) # NO -> closed
-        bus.write_byte_data(DEVICE_ADDR, rel[1], 0xFF) # NC -> open
+    else:
+        bus.write_byte_data(DEVICE_ADDR, rel, 0xFF) # Carrier Normally Open
 
 
 def set_plasma(plasma, logname=None):
