@@ -63,8 +63,12 @@ relays = {
 }
 
 # IP Address of the Cito Plus RF generator, connected by Ethernet
-cito_address = "169.254.1.1"
-citoctrl = cb.CitoBase(host_mode = 0, host_addr = cito_address) # 0 for Ethernet
+# cito_address = "169.254.1.1"
+# citoctrl = cb.CitoBase(host_mode = 0, host_addr = cito_address) # 0 for Ethernet
+
+# Address of the Cito Plus RF generator, connected by RS232->USB
+cito_address = "/dev/ttyUSB0"
+citoctrl = cb.CitoBase(host_mode = 1, host_addr = cito_address)
 
 # For writing into the log at the end of the recipe, 
 # whether it's a normal or forced ending
@@ -141,13 +145,16 @@ def HV_OFF():
         citoctrl.set_rf_off()  # turn off the rf
 
 
-def initialize():
+def initialize(pr1=False, pr2=False, car=True, wait=-1):
     """
     Make sure the relays are closed
     """
-    turn_OFF(Prec1)
-    turn_OFF(Prec2)
-    turn_ON(Carrier)
+    turn_ON(Prec1) if pr1 else turn_OFF(Prec1)
+    turn_ON(Prec2) if pr2 else turn_OFF(Prec2)
+    turn_ON(Carrier) if car else turn_OFF(Carrier)
+    if wait>0:
+        print_step(1,["Starting recipe in..."])
+        countdown(wait, wait)
 
 
 def append_to_file(logfile="log.txt", text=""):
@@ -299,7 +306,7 @@ def ALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
     """
     Definition of ALD recipe
     """
-    initialize()
+    initialize(wait=10)
     start_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
     st.session_state['start_time'] = start_time
     st.session_state['logname'] = f"Logs/{start_time}_{recipe}.txt"
@@ -359,8 +366,8 @@ def Purge(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
     """
     Definition of a Precursor 1 Purge
     """
+    initialize(wait=0)
     steps = [f"Pulse {prec1} – {t1} s"]
-    initialize()
     start_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
     st.session_state['start_time'] = start_time
     st.session_state['logname'] = f"Logs/{start_time}_{recipe}.txt"
@@ -382,11 +389,12 @@ def Purge(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
 
 
 def PulsedCVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1, 
-              recipe="Pulsed CVD", prec1="TEB", Carrier="Ar", prec2="H2"):
+              recipe="Pulsed CVD", prec1="TEB", Carrier="Ar", prec2="H2", 
+              sendCarrier=True):
     """
     Definition of pulsed CVD recipe
     """
-    initialize()
+    initialize(pr2=True, car=False, wait=30) if sendCarrier else initialize(pr2=True, wait=30)
     start_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
     st.session_state['start_time'] = start_time
     st.session_state['logname'] = f"Logs/{start_time}_{recipe}.txt"
@@ -403,11 +411,14 @@ def PulsedCVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
                             str(i+1)+" / "+str(N)+"</h2></span></div>",
                             unsafe_allow_html=True)
         remcyclebar.progress(int((i+1)/N*100))
+        turn_ON(Carrier)
         turn_ON(Prec1)
         print_step(1, steps)
         countdown(t1, tot)
         tot = tot-t1
         turn_OFF(Prec1)
+        if sendCarrier:
+            turn_OFF(Carrier)
         print_step(2, steps)
         countdown(p1, tot)
         tot = tot-p1
@@ -422,11 +433,12 @@ def PulsedCVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
 
 
 def PECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1, 
-          recipe="PECVD", prec1="TEB", Carrier="Ar", prec2="H2"):
+          recipe="PECVD", prec1="TEB", Carrier="Ar", prec2="H2",
+          sendCarrier=True):
     """
     Definition of PECVD recipe
     """
-    initialize()
+    initialize(pr2=True, car=False, wait=30) if sendCarrier else initialize(pr2=True, wait=30)
     start_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
     st.session_state['start_time'] = start_time
     st.session_state['logname'] = f"Logs/{start_time}_{recipe}.txt"
@@ -438,11 +450,14 @@ def PECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
     set_plasma(plasma, st.session_state['logname'])
     steps = [f"Pulse {prec1} – {t1} s"]
     remcycletext.write(f"# Pulsing {prec1}...\n")
+    turn_ON(Carrier)
     turn_ON(Prec1)
     HV_ON()
     print_step(1, steps)
     countdown(t1, tot)
     turn_OFF(Prec1)
+    if sendCarrier:
+        turn_OFF(Carrier)
     HV_OFF()
     end_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
     st.balloons()
@@ -454,11 +469,12 @@ def PECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
 
 
 def PulsedPECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1, 
-                recipe="Pulsed PECVD", prec1="TEB", Carrier="Ar", prec2="H2"):
+                recipe="Pulsed PECVD", prec1="TEB", Carrier="Ar", prec2="H2",
+                sendCarrier=True):
     """
     Definition of pulsed PECVD recipe
     """
-    initialize()
+    initialize(pr2=True, car=False, wait=30) if sendCarrier else initialize(pr2=True, wait=30)
     start_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
     st.session_state['start_time'] = start_time
     st.session_state['logname'] = f"Logs/{start_time}_{recipe}.txt"
@@ -479,11 +495,14 @@ def PulsedPECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
                           str(i+1)+" / "+str(N)+"</h2></span></div>",
                           unsafe_allow_html=True)
         remcyclebar.progress(int((i+1)/N*100))
+        turn_ON(Carrier)
         turn_ON(Prec1)
         print_step(1, steps)
         countdown(t1, tot)
         tot = tot-t1
         turn_OFF(Prec1)
+        if sendCarrier:
+            turn_OFF(Carrier)
         print_step(2, steps)
         countdown(p1, tot)
         tot = tot-p1
@@ -497,7 +516,6 @@ def PulsedPECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
             print_step(3, steps)
             countdown(t2, tot)
             tot = tot-t2
-            turn_OFF(Prec2)
             HV_OFF()
             print_step(4, steps)
             countdown(p2, tot)
@@ -547,7 +565,7 @@ def PEALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
     """
     Definition of PEALD recipe
     """
-    initialize()
+    initialize(wait=10)
     start_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
     st.session_state['start_time'] = start_time
     st.session_state['logname'] = f"Logs/{start_time}_{recipe}.txt"
@@ -606,11 +624,13 @@ def PEALD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
     end_recipe()
 
 
-def CVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1, recipe="CVD", prec1="TEB", Carrier="Ar", prec2="H2"):
+def CVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1, recipe="CVD", 
+        prec1="TEB", Carrier="Ar", prec2="H2",
+        sendCarrier=True):
     """
     Definition of CVD recipe
     """
-    initialize()
+    initialize(pr2=True, car=False, wait=30) if sendCarrier else initialize(pr2=True, wait=30)
     start_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
     st.session_state['start_time'] = start_time
     st.session_state['logname'] = f"Logs/{start_time}_{recipe}.txt"
@@ -620,10 +640,13 @@ def CVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1, recipe="CVD", prec
                  t1=t1, time_per_cycle=timedelta(seconds=st.session_state['cycle_time']))
     steps = [f"Pulse {prec1} – {t1} s"]
     remcycletext.write(f"# Pulsing {prec1}...\n")
+    turn_ON(Carrier)
     turn_ON(Prec1)
     print_step(1, steps)
     countdown(t1, tot)
     turn_OFF(Prec1)
+    if sendCarrier:
+        turn_OFF(Carrier)
     end_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
     st.balloons()
     time.sleep(2)

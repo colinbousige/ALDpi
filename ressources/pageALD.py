@@ -6,7 +6,7 @@ from ressources.setup import *
 
 def app():
     framework()
-    initialize()
+    initialize(wait=-1)
     
     st.sidebar.write("## Recipe Parameters")
     layout = st.sidebar.columns([1, 1])

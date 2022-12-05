@@ -6,7 +6,7 @@ from ressources.setup import *
 
 def app():
     framework()
-    initialize()
+    initialize(wait=-1)
     
     st.sidebar.write("## Recipe Parameters")
     layout = st.sidebar.columns([1, 1])
@@ -16,6 +16,8 @@ def app():
                         step=1., value=120., key="t1")
     plasma = st.sidebar.number_input("Plasma power (W):", min_value=0, max_value=600,
                                     step=1, value=default["plasma"], key="plasma")
+    sendCarrier = st.sidebar.checkbox(
+        f"Send carrier only during {Prec1} pulse?", value=True, key="sendCarrier")
     print_tot_time(t1)
     set_plasma(plasma)
 
@@ -40,5 +42,6 @@ def app():
     # # # # # # # # # # # # # # # # # # # # # # # #
     GObutton = layout[1].button('GO')
     if GObutton:
-        PECVD(t1=t1, p1=p1, t2=t2, p2=p2, N=N, N2=N2, plasma=plasma, prec1=prec1)
+        PECVD(t1=t1, p1=p1, t2=t2, p2=p2, N=N, N2=N2, plasma=plasma, 
+              prec1=prec1, sendCarrier=sendCarrier)
 

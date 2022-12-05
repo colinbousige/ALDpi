@@ -6,7 +6,7 @@ from ressources.setup import *
 
 def app():
     framework()
-    initialize()
+    initialize(wait=-1)
     
     st.sidebar.write("## Recipe Parameters")
     layout = st.sidebar.columns([1, 1])
@@ -14,6 +14,8 @@ def app():
     prec1 = st.sidebar.text_input("Precursor 1:", Prec1, key="prec1")
     t1 = st.sidebar.number_input("Pulse "+prec1+" (s):", min_value=0.,
                         step=1., value=120., key="t1")
+    sendCarrier = st.sidebar.checkbox(
+        f"Send carrier only during {Prec1} pulse?", value=True, key="sendCarrier")
     print_tot_time(t1)
     
     # # # # # # # # # # # # # # # # # # # # # # # #
@@ -38,5 +40,5 @@ def app():
     GObutton = layout[1].button('GO')
     if GObutton:
         CVD(t1=t1, p1=p1, t2=t2, p2=p2, N=N, N2=N2,
-            prec1=prec1)
+            prec1=prec1, sendCarrier=sendCarrier)
 
