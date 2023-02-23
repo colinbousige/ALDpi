@@ -9,6 +9,9 @@ def app():
     initialize(wait=-1)
     
     st.sidebar.write("## Recipe Parameters")
+    wait = st.sidebar.number_input("Waiting time befor starting:", min_value=0,
+                            step=1, value=300, key="wait")
+    
     layout = st.sidebar.columns([1, 1])
 
     prec1 = layout[0].text_input("Precursor 1:", Prec1, key="prec1")
@@ -27,8 +30,6 @@ def app():
                             step=1, value=default["N"], key="N")
     plasma = layout[0].number_input("Plasma power (W):", min_value=0, max_value=600,
                                     step=1, value=default["plasma"], key="plasma")
-    sendCarrier = st.sidebar.checkbox(
-        f"Send carrier only during {Prec1} pulse?", value=True, key="sendCarrier")
 
     print_tot_time((t1+p1+(t2+p2)*N2)*N)
     set_plasma(plasma)
@@ -55,5 +56,5 @@ def app():
     GObutton = layout[1].button('GO')
     if GObutton:
         PulsedPECVD(t1=t1, p1=p1, t2=t2, p2=p2, N=N, N2=N2,
-                    plasma=plasma, prec1=prec1, sendCarrier=sendCarrier)
+                    plasma=plasma, prec1=prec1, wait=wait)
 

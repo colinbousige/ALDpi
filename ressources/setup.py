@@ -470,11 +470,11 @@ def PECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
 
 def PulsedPECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1, 
                 recipe="Pulsed PECVD", prec1="TEB", Carrier="Ar", prec2="H2",
-                sendCarrier=True):
+                wait=30):
     """
     Definition of pulsed PECVD recipe
     """
-    initialize(pr2=True, car=False, wait=30) if sendCarrier else initialize(pr2=True, wait=30)
+    initialize(pr2=True, car=False, wait=wait)
     start_time = datetime.now().strftime(f"%Y-%m-%d-%H:%M:%S")
     st.session_state['start_time'] = start_time
     st.session_state['logname'] = f"Logs/{start_time}_{recipe}.txt"
@@ -495,14 +495,11 @@ def PulsedPECVD(t1=0.015, p1=40, t2=10, p2=40, N=100, N2=1, plasma=1,
                           str(i+1)+" / "+str(N)+"</h2></span></div>",
                           unsafe_allow_html=True)
         remcyclebar.progress(int((i+1)/N*100))
-        turn_ON(Carrier)
-        turn_ON(Prec1)
+        turn_ON(Carrier); turn_ON(Prec1)
         print_step(1, steps)
         countdown(t1, tot)
         tot = tot-t1
-        turn_OFF(Prec1)
-        if sendCarrier:
-            turn_OFF(Carrier)
+        turn_OFF(Prec1); turn_OFF(Carrier)
         print_step(2, steps)
         countdown(p1, tot)
         tot = tot-p1
